@@ -9,25 +9,28 @@ import contactRoutes from "./routes/contactRoutes.js";
 import testimonialRoutes from "./routes/testimonialRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import faqRoutes from "./routes/faqRoutes.js";
-import settingRoutes from "./routes/settingRoutes.js"; // ✅ NEW: Settings API route
+import settingRoutes from "./routes/settingRoutes.js"; // ✅ Settings API route
 
 dotenv.config();
 const app = express();
 
-// ✅ CORS Setup (Fixed for Netlify + Local)
+// ✅ CORS Setup (Now works for Netlify + Render)
 app.use(
   cors({
     origin: [
-      "http://localhost:5173", // Website (local dev)
-      "http://localhost:5174", // Admin panel (local dev)
-      "https://vanshvruumcab.netlify.app", // ✅ Your Live Netlify site
-      "https://vruum-admin.netlify.app", // ✅ Admin Netlify (optional)
+      "http://localhost:5173", // Local dev frontend
+      "http://localhost:5174", // Local admin panel
+      "https://vanshvruumcab.netlify.app", // ✅ Your live site
+      "https://vruum-backend.onrender.com", // ✅ Allow backend self-origin (important)
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
+
+// ✅ Handle Preflight Requests (important for Netlify)
+app.options("*", cors());
 
 // ✅ Body Parser — increased limits for images/base64
 app.use(express.json({ limit: "10mb" }));
@@ -44,9 +47,9 @@ app.use("/api/contacts", contactRoutes);
 app.use("/api/testimonials", testimonialRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/faqs", faqRoutes);
-app.use("/api/settings", settingRoutes); // ✅ NEW: Settings API connected
+app.use("/api/settings", settingRoutes);
 
-// ✅ Optional Test Route for MongoDB
+// ✅ Optional MongoDB Test Route
 const TestSchema = new mongoose.Schema({
   name: String,
   email: String,

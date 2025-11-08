@@ -14,17 +14,18 @@ import settingRoutes from "./routes/settingRoutes.js"; // ✅ NEW: Settings API 
 dotenv.config();
 const app = express();
 
-// ✅ CORS Setup (Allow both website & admin panel)
+// ✅ CORS Setup (Fixed for Netlify + Local)
 app.use(
   cors({
     origin: [
-      "http://localhost:5173", // Website
-      "http://localhost:5174", // Admin panel
-      "https://vruum-frontend.netlify.app", // ✅ Add Netlify frontend
-      "https://vruum-admin.netlify.app", // ✅ Add admin panel deployment if needed
+      "http://localhost:5173", // Website (local dev)
+      "http://localhost:5174", // Admin panel (local dev)
+      "https://vanshvruumcab.netlify.app", // ✅ Your Live Netlify site
+      "https://vruum-admin.netlify.app", // ✅ Admin Netlify (optional)
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
+    credentials: true,
   })
 );
 

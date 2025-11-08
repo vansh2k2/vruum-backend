@@ -7,8 +7,9 @@ import dotenv from "dotenv";
 import adminRoutes from "./routes/adminRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import testimonialRoutes from "./routes/testimonialRoutes.js";
-import blogRoutes from "./routes/blogRoutes.js"; // ✅ Blog route added
+import blogRoutes from "./routes/blogRoutes.js";
 import faqRoutes from "./routes/faqRoutes.js";
+import settingRoutes from "./routes/settingRoutes.js"; // ✅ NEW: Settings API route
 
 dotenv.config();
 const app = express();
@@ -16,7 +17,12 @@ const app = express();
 // ✅ CORS Setup (Allow both website & admin panel)
 app.use(
   cors({
-    origin: ["http://localhost:5173", "http://localhost:5174"],
+    origin: [
+      "http://localhost:5173", // Website
+      "http://localhost:5174", // Admin panel
+      "https://vruum-frontend.netlify.app", // ✅ Add Netlify frontend
+      "https://vruum-admin.netlify.app", // ✅ Add admin panel deployment if needed
+    ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -35,10 +41,11 @@ app.get("/", (req, res) => {
 app.use("/api/admin", adminRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/testimonials", testimonialRoutes);
-app.use("/api/blogs", blogRoutes); // ✅ Blog route connected
+app.use("/api/blogs", blogRoutes);
 app.use("/api/faqs", faqRoutes);
+app.use("/api/settings", settingRoutes); // ✅ NEW: Settings API connected
 
-// ✅ (Optional) Quick Test Route for MongoDB connection
+// ✅ Optional Test Route for MongoDB
 const TestSchema = new mongoose.Schema({
   name: String,
   email: String,
@@ -61,7 +68,7 @@ app.post("/api/test", async (req, res) => {
   }
 });
 
-// ✅ Connect to MongoDB
+// ✅ MongoDB Connection
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -72,6 +79,8 @@ mongoose
   })
   .then(() => {
     console.log("✅ MongoDB connected successfully!");
-    app.listen(PORT, () => console.log(`🚀 Server started on port ${PORT}`));
+    app.listen(PORT, () =>
+      console.log(`🚀 Server started successfully on port ${PORT}`)
+    );
   })
   .catch((err) => console.error("❌ MongoDB connection error:", err.message));

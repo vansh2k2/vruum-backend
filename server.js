@@ -14,15 +14,16 @@ import settingRoutes from "./routes/settingRoutes.js"; // ✅ Settings API route
 dotenv.config();
 const app = express();
 
-// ✅ CORS Setup (Works for Netlify + Render)
+// ✅ CORS Setup (Updated for all your active Netlify builds + Render)
 app.use(
   cors({
     origin: [
       "http://localhost:5173", // Local frontend
       "http://localhost:5174", // Local admin
-      "https://vanshvruumcab.netlify.app", // Old Netlify site
-      "https://dreamy-biscuit-f30938.netlify.app", // ✅ Your new live site
-      "https://vruum-backend.onrender.com", // ✅ Backend self-origin
+      "https://vanshvruumcab.netlify.app", // Old site
+      "https://dreamy-biscuit-f30938.netlify.app", // Previous build
+      "https://inquisitive-boba-333e6c.netlify.app", // ✅ Current active build
+      "https://vruum-backend.onrender.com", // Backend self-origin (Render)
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -30,7 +31,7 @@ app.use(
   })
 );
 
-// ✅ Body Parser — increased limits for images/base64
+// ✅ Body Parser — supports large payloads (images, base64, etc.)
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 

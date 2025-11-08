@@ -14,14 +14,14 @@ import settingRoutes from "./routes/settingRoutes.js"; // ✅ Settings API route
 dotenv.config();
 const app = express();
 
-// ✅ CORS Setup (Now works for Netlify + Render)
+// ✅ CORS Setup (Works for Netlify + Render)
 app.use(
   cors({
     origin: [
       "http://localhost:5173", // Local dev frontend
       "http://localhost:5174", // Local admin panel
       "https://vanshvruumcab.netlify.app", // ✅ Your live site
-      "https://vruum-backend.onrender.com", // ✅ Allow backend self-origin (important)
+      "https://vruum-backend.onrender.com", // ✅ Allow backend self-origin
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -29,8 +29,8 @@ app.use(
   })
 );
 
-// ✅ Handle Preflight Requests (important for Netlify)
-app.options("*", cors());
+// ❌ Remove this line (caused deploy crash):
+// app.options("*", cors());
 
 // ✅ Body Parser — increased limits for images/base64
 app.use(express.json({ limit: "10mb" }));

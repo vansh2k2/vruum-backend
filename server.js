@@ -18,19 +18,17 @@ const app = express();
 app.use(
   cors({
     origin: [
-      "http://localhost:5173", // Local dev frontend
-      "http://localhost:5174", // Local admin panel
-      "https://vanshvruumcab.netlify.app", // ✅ Your live site
-      "https://vruum-backend.onrender.com", // ✅ Allow backend self-origin
+      "http://localhost:5173", // Local frontend
+      "http://localhost:5174", // Local admin
+      "https://vanshvruumcab.netlify.app", // Old Netlify site
+      "https://dreamy-biscuit-f30938.netlify.app", // ✅ Your new live site
+      "https://vruum-backend.onrender.com", // ✅ Backend self-origin
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
     credentials: true,
   })
 );
-
-// ❌ Remove this line (caused deploy crash):
-// app.options("*", cors());
 
 // ✅ Body Parser — increased limits for images/base64
 app.use(express.json({ limit: "10mb" }));

@@ -1,22 +1,60 @@
-import multer from "multer";
+import cloudinary from "../config/cloudinary.js";
+import Gallery from "../models/galleryModel.js";
+import streamifier from "streamifier";
 
-const storage = multer.memoryStorage();
+export const createGalleryItem = async (req, res) => {
+  try {
+    const { title, category, type } = req.body;
 
-const fileFilter = (req, file, cb) => {
-  const allowedImage = ["image/jpeg", "image/jpg", "image/png", "image/webp"];
-  const allowedVideo = ["video/mp4", "video/webm"];
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "File is required",
+      });
+    }
 
-  if (allowedImage.includes(file.mimetype) || allowedVideo.includes(file.mimetype)) {
-    cb(null, true);
-  } else {
-    cb(new Error("Invalid file type"), false);
+    // Upload buffer → Cloudinary (using streamifier)
+    const uploadToCloudinary = () => {
+      return new Promise((resolve, reject) => {
+        const uploadStream = cloudinary.uploader.upload_stream(
+          {
+            folder: "gallery",
+            resource_type: type === "video" ? "video" : "image",
+          },
+          (error, result) => {
+            if (error) {
+              console.error("Cloudinary Error:", error);
+              return reject(error);
+            }
+            resolve(result);
+          }
+        );
+
+        streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+      });
+    };
+
+    const uploaded = await uploadToCloudinary();
+
+    // Save to MongoDB
+    const item = await Gallery.create({
+      title,
+      category,
+      type,
+      url: uploaded.secure_url,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: "Uploaded successfully",
+      item,
+    });
+
+  } catch (err) {
+    console.error("Gallery Upload Error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Server error while uploading",
+    });
   }
 };
-
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
-});
-
-export default upload;

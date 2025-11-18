@@ -11,7 +11,7 @@ export const getCareers = async (req, res) => {
   }
 };
 
-// GET /api/careers/:id
+// GET /api/careers/:id 
 export const getCareer = async (req, res) => {
   try {
     const doc = await Career.findById(req.params.id);

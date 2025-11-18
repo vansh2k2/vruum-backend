@@ -2,9 +2,9 @@ import cloudinary from "../config/cloudinary.js";
 import Gallery from "../models/galleryModel.js";
 import streamifier from "streamifier";
 
-// ======================================
-// CREATE ITEM
-// ======================================
+// =====================================================
+// CREATE GALLERY ITEM (UPLOAD)
+// =====================================================
 export const createGalleryItem = async (req, res) => {
   try {
     const { title, category, type } = req.body;
@@ -16,6 +16,7 @@ export const createGalleryItem = async (req, res) => {
       });
     }
 
+    // Cloudinary Upload Function
     const uploadToCloudinary = () => {
       return new Promise((resolve, reject) => {
         const uploadStream = cloudinary.uploader.upload_stream(
@@ -35,11 +36,13 @@ export const createGalleryItem = async (req, res) => {
 
     const uploaded = await uploadToCloudinary();
 
+    // Save to DB
     const item = await Gallery.create({
       title,
       category,
       type,
       url: uploaded.secure_url,
+      public_id: uploaded.public_id,
     });
 
     return res.status(201).json({
@@ -57,22 +60,30 @@ export const createGalleryItem = async (req, res) => {
   }
 };
 
-// ======================================
+// =====================================================
 // GET ALL ITEMS
-// ======================================
+// =====================================================
 export const getGalleryItems = async (req, res) => {
   try {
     const items = await Gallery.find().sort({ createdAt: -1 });
-    res.status(200).json({ success: true, items });
+
+    return res.status(200).json({
+      success: true,
+      data: items,
+    });
+
   } catch (err) {
     console.error("Fetch Error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 };
 
-// ======================================
+// =====================================================
 // DELETE ITEM
-// ======================================
+// =====================================================
 export const deleteGalleryItem = async (req, res) => {
   try {
     const { id } = req.params;
@@ -85,10 +96,7 @@ export const deleteGalleryItem = async (req, res) => {
       });
     }
 
-    // extract public_id from cloudinary URL
-    const publicId = item.url.split("/").pop().split(".")[0];
-
-    await cloudinary.uploader.destroy("gallery/" + publicId, {
+    await cloudinary.uploader.destroy(item.public_id, {
       resource_type: item.type === "video" ? "video" : "image",
     });
 
@@ -101,6 +109,9 @@ export const deleteGalleryItem = async (req, res) => {
 
   } catch (err) {
     console.error("Delete Error:", err);
-    res.status(500).json({ success: false, message: "Server error" });
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+    });
   }
 };

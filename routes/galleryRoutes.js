@@ -8,13 +8,8 @@ import {
 
 const router = express.Router();
 
-// Upload route (FIELD = "file")
 router.post("/", upload.single("file"), createGalleryItem);
-
-// Get all gallery items
 router.get("/", getGalleryItems);
-
-// Delete gallery item
 router.delete("/:id", deleteGalleryItem);
 
 export default router;

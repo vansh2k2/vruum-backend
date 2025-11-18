@@ -3,11 +3,25 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 
-// =======================================
-// LOAD ENV VARIABLES
-// =======================================
 dotenv.config();
 const app = express();
+
+// =======================================
+// CORS (FIXED FOR RENDER + NETLIFY)
+// =======================================
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// =======================================
+// BODY PARSER
+// =======================================
+app.use(express.json({ limit: "25mb" }));
+app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
 // =======================================
 // IMPORT ALL ROUTES
@@ -19,38 +33,13 @@ import blogRoutes from "./routes/blogRoutes.js";
 import faqRoutes from "./routes/faqRoutes.js";
 import settingRoutes from "./routes/settingRoutes.js";
 import careerRoutes from "./routes/careerRoutes.js";
-import galleryRoutes from "./routes/galleryRoutes.js"; // ⭐ NEW
-
-// =======================================
-// CORS CONFIGURATION
-// =======================================
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "https://vanshvruumcab.netlify.app",
-      "https://dreamy-biscuit-f30938.netlify.app",
-      "https://inquisitive-boba-333e6c.netlify.app",
-      "https://vruum-backend.onrender.com",
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
-
-// =======================================
-// BODY PARSER (IMPORTANT FOR CLOUDINARY)
-// =======================================
-app.use(express.json({ limit: "25mb" }));
-app.use(express.urlencoded({ extended: true, limit: "25mb" }));
+import galleryRoutes from "./routes/galleryRoutes.js";
 
 // =======================================
 // ROOT ROUTE
 // =======================================
 app.get("/", (req, res) => {
-  res.send("🚀 Vruum Backend Server Running Successfully (Cloudinary Ready) ✅");
+  res.send("🚀 Vruum Backend Running Successfully (Render + Cloudinary Ready)");
 });
 
 // =======================================
@@ -63,10 +52,10 @@ app.use("/api/blogs", blogRoutes);
 app.use("/api/faqs", faqRoutes);
 app.use("/api/settings", settingRoutes);
 app.use("/api/careers", careerRoutes);
-app.use("/api/gallery", galleryRoutes); // ⭐ GALLERY API ADDED
+app.use("/api/gallery", galleryRoutes);
 
 // =======================================
-// TEST ROUTE
+// TEST MODEL ROUTE
 // =======================================
 const TestSchema = new mongoose.Schema({
   name: String,
@@ -107,10 +96,10 @@ mongoose
     console.log("✅ MongoDB connected successfully!");
     app.listen(PORT, () =>
       console.log(
-        `🚀 Server started successfully on PORT ${PORT} — (Ready for Render Deploy) ✔`
+        `🚀 Server started on PORT ${PORT} — Ready for Render Deploy ✔`
       )
     );
   })
   .catch((err) => {
-    console.error("❌ MongoDB connection error:", err.message);
+    console.error("❌ MongoDB error:", err.message);
   });

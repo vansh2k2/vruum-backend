@@ -1,63 +1,42 @@
-import Gallery from "../models/galleryModel.js";
 import cloudinary from "../config/cloudinary.js";
+import Gallery from "../models/galleryModel.js";
 
-// ====================== ADD ITEM ======================
-export const addGalleryItem = async (req, res) => {
+export const createGalleryItem = async (req, res) => {
   try {
+    const { title, category, type } = req.body;
+
     if (!req.file) {
-      return res.status(400).json({ success: false, message: "File missing" });
+      return res.status(400).json({
+        success: false,
+        message: "File is required",
+      });
     }
 
-    const file = req.file.path;
+    // Upload buffer to cloudinary
+    const uploadResult = await cloudinary.uploader.upload_stream(
+      { resource_type: type === "video" ? "video" : "image", folder: "gallery" },
+      async (error, result) => {
+        if (error) {
+          console.error("Cloudinary Upload Error:", error);
+          return res.status(500).json({ success: false, message: "Upload failed" });
+        }
 
-    // Upload to Cloudinary
-    const result = await cloudinary.uploader.upload(file, {
-      folder: "vruum_gallery",
-      resource_type: "auto",
-    });
+        const item = await Gallery.create({
+          title,
+          category,
+          type,
+          url: result.secure_url,
+        });
 
-    const newItem = await Gallery.create({
-      type: req.body.type,
-      url: result.secure_url,
-      public_id: result.public_id,
-    });
+        res.status(201).json({ success: true, item });
+      }
+    );
 
-    res.json({
-      success: true,
-      message: "Gallery item added!",
-      data: newItem,
-    });
+    // Pipe file buffer
+    uploadResult.end(req.file.buffer);
+
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ success: false, error: err.message });
-  }
-};
-
-// ====================== GET ALL ======================
-export const getGallery = async (req, res) => {
-  try {
-    const items = await Gallery.find().sort({ createdAt: -1 });
-    res.json({ success: true, data: items });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
-  }
-};
-
-// ====================== DELETE ======================
-export const deleteGalleryItem = async (req, res) => {
-  try {
-    const item = await Gallery.findById(req.params.id);
-    if (!item) return res.status(404).json({ success: false, message: "Item not found" });
-
-    // Delete from Cloudinary
-    await cloudinary.uploader.destroy(item.public_id, {
-      resource_type: item.type === "video" ? "video" : "image",
-    });
-
-    await item.deleteOne();
-
-    res.json({ success: true, message: "Item deleted successfully!" });
-  } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    console.log("Controller Error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

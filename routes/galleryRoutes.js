@@ -1,16 +1,17 @@
 import express from "express";
-import { addGalleryItem, getGallery, deleteGalleryItem } from "../controllers/galleryController.js";
 import upload from "../config/multer.js";
+import {
+  createGalleryItem,
+  getGalleryItems,
+  deleteGalleryItem,
+} from "../controllers/galleryController.js";
 
 const router = express.Router();
 
-// ADD
-router.post("/", upload.single("file"), addGalleryItem);
+// VERY IMPORTANT — FIELD NAME = "file"
+router.post("/", upload.single("file"), createGalleryItem);
 
-// GET
-router.get("/", getGallery);
-
-// DELETE
+router.get("/", getGalleryItems);
 router.delete("/:id", deleteGalleryItem);
 
 export default router;

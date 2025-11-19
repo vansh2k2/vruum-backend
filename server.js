@@ -1,3 +1,6 @@
+// =======================================================
+// IMPORTS
+// =======================================================
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -11,7 +14,7 @@ const app = express();
 // =======================================================
 app.use(
   cors({
-    origin: "*", // Allow all origins
+    origin: "*",
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -34,20 +37,26 @@ import faqRoutes from "./routes/faqRoutes.js";
 import settingRoutes from "./routes/settingRoutes.js";
 import careerRoutes from "./routes/careerRoutes.js";
 import galleryRoutes from "./routes/galleryRoutes.js";
-
-// ⭐ SUPPORT ROUTE
 import supportRoutes from "./routes/supportRoutes.js";
+
+// ⭐ NEW ROUTE → Passenger Auth (REGISTER + LOGIN)
+import passengerAuthRoutes from "./routes/passengerAuthRoutes.js";
 
 // =======================================================
 // ROOT TEST ROUTE
 // =======================================================
 app.get("/", (req, res) => {
-  res.send("🚀 Vruum Backend Running Successfully. Support API Online ✔");
+  res.send("🚀 Vruum Backend Running Successfully. Passenger + Support + Admin API Online ✔");
 });
 
 // =======================================================
 // CONNECT ALL ROUTES
 // =======================================================
+
+// ⭐ Passenger Auth Routes
+app.use("/api/passenger", passengerAuthRoutes);
+
+// Existing Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/testimonials", testimonialRoutes);
@@ -56,8 +65,6 @@ app.use("/api/faqs", faqRoutes);
 app.use("/api/settings", settingRoutes);
 app.use("/api/careers", careerRoutes);
 app.use("/api/gallery", galleryRoutes);
-
-// ⭐ SUPPORT ROUTE (FINAL)
 app.use("/api/support", supportRoutes);
 
 // =======================================================
@@ -90,7 +97,7 @@ app.post("/api/test", async (req, res) => {
 });
 
 // =======================================================
-// SERVER + MONGO START
+// MONGO + SERVER
 // =======================================================
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;

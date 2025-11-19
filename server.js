@@ -53,8 +53,9 @@ app.get("/", (req, res) => {
 // CONNECT ALL ROUTES
 // =======================================================
 
-// ⭐ ADMIN PANEL PASSENGERS ROUTE
-app.use("/api/admin/passengers", passengerAuthRoutes);
+// ⭐ Passenger Public Routes
+app.use("/api/passengers", passengerAuthRoutes);
+
 
 // ⭐ EXISTING ROUTES
 app.use("/api/admin", adminRoutes);

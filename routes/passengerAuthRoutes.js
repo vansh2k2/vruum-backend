@@ -8,14 +8,12 @@ import {
 
 const router = express.Router();
 
-// USER AUTH
+// USER PUBLIC ROUTES
 router.post("/register", registerPassenger);
 router.post("/login", loginPassenger);
 
-// ADMIN — GET ALL PASSENGERS
-router.get("/", getAllPassengers);
-
-// ADMIN — DELETE PASSENGER
+// ADMIN ROUTES
+router.get("/all", getAllPassengers);
 router.delete("/:id", deletePassenger);
 
 export default router;

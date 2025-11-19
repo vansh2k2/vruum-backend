@@ -1,7 +1,8 @@
 import Partner from "../models/Partner.js";
 import cloudinary from "../config/cloudinary.js";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
-// Helper for uploading to Cloudinary
 const uploadToCloudinary = async (file) => {
   try {
     const uploaded = await cloudinary.uploader.upload(file.path, {
@@ -15,16 +16,26 @@ const uploadToCloudinary = async (file) => {
 };
 
 // =============================
-// CREATE PARTNER (REGISTER)
+// REGISTER PARTNER
 // =============================
 export const registerPartner = async (req, res) => {
   try {
     let data = req.body;
     let files = req.files;
 
+    // 🔥 password check
+    if (!data.password) {
+      return res.status(400).json({
+        success: false,
+        message: "Password is required",
+      });
+    }
+
+    // 🔥 hash password
+    const hashedPassword = await bcrypt.hash(data.password, 10);
+
     // Upload images
     const uploadedFiles = {};
-
     const uploadFields = [
       "profilePhoto",
       "vehiclePicture",
@@ -36,7 +47,7 @@ export const registerPartner = async (req, res) => {
       "rcCertificate",
       "fitnessCertificate",
       "pollutionCertificate",
-      "insuranceCertificate"
+      "insuranceCertificate",
     ];
 
     for (const field of uploadFields) {
@@ -49,6 +60,7 @@ export const registerPartner = async (req, res) => {
     const newPartner = await Partner.create({
       ...data,
       ...uploadedFiles,
+      password: hashedPassword,
       status: "pending",
     });
 
@@ -67,7 +79,72 @@ export const registerPartner = async (req, res) => {
 };
 
 // =============================
-// GET ALL PARTNERS (ADMIN)
+// LOGIN PARTNER (NEW)
+// =============================
+export const loginPartner = async (req, res) => {
+  try {
+    const { phoneNumber, password } = req.body;
+
+    if (!phoneNumber || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number & password required",
+      });
+    }
+
+    const partner = await Partner.findOne({ phoneNumber });
+
+    if (!partner) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid phone number or password",
+      });
+    }
+
+    // Match password
+    const isMatch = await bcrypt.compare(password, partner.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid phone number or password",
+      });
+    }
+
+    // Check approval
+    if (partner.status !== "approved") {
+      return res.status(403).json({
+        success: false,
+        message:
+          partner.status === "pending"
+            ? "Your profile is pending approval"
+            : "Your profile has been rejected",
+      });
+    }
+
+    // JWT Token
+    const token = jwt.sign(
+      { id: partner._id, role: "partner" },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    return res.json({
+      success: true,
+      message: "Login successful",
+      partner,
+      token,
+    });
+  } catch (error) {
+    console.error("Login Error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error during login",
+    });
+  }
+};
+
+// =============================
+// GET ALL PARTNERS
 // =============================
 export const getAllPartners = async (req, res) => {
   try {

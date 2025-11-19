@@ -7,6 +7,7 @@ import {
   deletePartner,
   approvePartner,
   rejectPartner,
+  loginPartner,   // ⭐ NEW IMPORT
 } from "../controllers/partnerController.js";
 
 const router = express.Router();
@@ -35,6 +36,9 @@ const uploadFields = upload.fields([
 
 // Register partner
 router.post("/register", uploadFields, registerPartner);
+
+// ⭐ NEW — LOGIN ROUTE
+router.post("/login", loginPartner);
 
 // Get all partners (Admin)
 router.get("/", getAllPartners);

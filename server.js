@@ -42,11 +42,14 @@ import supportRoutes from "./routes/supportRoutes.js";
 // ⭐ Passenger Routes
 import passengerAuthRoutes from "./routes/passengerAuthRoutes.js";
 
+// ⭐ Partner Routes (NEW)
+import partnerRoutes from "./routes/partnerRoutes.js";
+
 // =======================================================
 // ROOT TEST ROUTE
 // =======================================================
 app.get("/", (req, res) => {
-  res.send("🚀 Vruum Backend Running Successfully. Passenger + Support + Admin API Online ✔");
+  res.send("🚀 Vruum Backend Running Successfully. Passenger + Partner + Support + Admin API Online ✔");
 });
 
 // =======================================================
@@ -56,8 +59,10 @@ app.get("/", (req, res) => {
 // ⭐ Passenger Public Routes
 app.use("/api/passengers", passengerAuthRoutes);
 
+// ⭐ Partner Routes
+app.use("/api/partners", partnerRoutes);
 
-// ⭐ EXISTING ROUTES
+// ⭐ Existing Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/testimonials", testimonialRoutes);
@@ -114,4 +119,3 @@ mongoose
   .catch((err) => {
     console.log("❌ MongoDB error:", err.message);
   });
-

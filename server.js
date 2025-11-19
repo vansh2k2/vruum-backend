@@ -6,26 +6,26 @@ import dotenv from "dotenv";
 dotenv.config();
 const app = express();
 
-// =======================================
-// CORS (FIXED FOR RENDER + NETLIFY)
-// =======================================
+// =======================================================
+// CORS (REQUIRED FOR RENDER + LOCALHOST + NETLIFY)
+// =======================================================
 app.use(
   cors({
-    origin: "*",
+    origin: "*", // Allow all origins
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
-// =======================================
-// BODY PARSER
-// =======================================
+// =======================================================
+// BODY PARSERS
+// =======================================================
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
-// =======================================
-// IMPORT ALL ROUTES
-// =======================================
+// =======================================================
+// IMPORT ROUTES
+// =======================================================
 import adminRoutes from "./routes/adminRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
 import testimonialRoutes from "./routes/testimonialRoutes.js";
@@ -35,16 +35,19 @@ import settingRoutes from "./routes/settingRoutes.js";
 import careerRoutes from "./routes/careerRoutes.js";
 import galleryRoutes from "./routes/galleryRoutes.js";
 
-// =======================================
-// ROOT ROUTE
-// =======================================
+// ⭐ SUPPORT ROUTE
+import supportRoutes from "./routes/supportRoutes.js";
+
+// =======================================================
+// ROOT TEST ROUTE
+// =======================================================
 app.get("/", (req, res) => {
-  res.send("🚀 Vruum Backend Running Successfully (Render + Cloudinary Ready)");
+  res.send("🚀 Vruum Backend Running Successfully. Support API Online ✔");
 });
 
-// =======================================
-// API ROUTES
-// =======================================
+// =======================================================
+// CONNECT ALL ROUTES
+// =======================================================
 app.use("/api/admin", adminRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/testimonials", testimonialRoutes);
@@ -54,9 +57,12 @@ app.use("/api/settings", settingRoutes);
 app.use("/api/careers", careerRoutes);
 app.use("/api/gallery", galleryRoutes);
 
-// =======================================
-// TEST MODEL ROUTE
-// =======================================
+// ⭐ SUPPORT ROUTE (FINAL)
+app.use("/api/support", supportRoutes);
+
+// =======================================================
+// TEST ROUTE (OPTIONAL)
+// =======================================================
 const TestSchema = new mongoose.Schema({
   name: String,
   email: String,
@@ -76,7 +82,6 @@ app.post("/api/test", async (req, res) => {
       data: doc,
     });
   } catch (err) {
-    console.error(err);
     res.status(500).json({
       success: false,
       error: err.message,
@@ -84,9 +89,9 @@ app.post("/api/test", async (req, res) => {
   }
 });
 
-// =======================================
-// MONGO + SERVER START
-// =======================================
+// =======================================================
+// SERVER + MONGO START
+// =======================================================
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
 
@@ -95,11 +100,9 @@ mongoose
   .then(() => {
     console.log("✅ MongoDB connected successfully!");
     app.listen(PORT, () =>
-      console.log(
-        `🚀 Server started on PORT ${PORT} — Ready for Render Deploy ✔`
-      )
+      console.log(`🚀 Server running on PORT ${PORT} — Ready for Render Deploy ✔`)
     );
   })
   .catch((err) => {
-    console.error("❌ MongoDB error:", err.message);
+    console.log("❌ MongoDB error:", err.message);
   });

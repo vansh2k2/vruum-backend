@@ -1,12 +1,21 @@
 import express from "express";
-import { registerPassenger, loginPassenger } from "../controllers/passengerAuthController.js";
+import {
+  registerPassenger,
+  loginPassenger,
+  getAllPassengers,
+  deletePassenger,
+} from "../controllers/passengerAuthController.js";
 
 const router = express.Router();
 
-// REGISTER ROUTE
+// USER AUTH
 router.post("/register", registerPassenger);
-
-// LOGIN ROUTE
 router.post("/login", loginPassenger);
+
+// ADMIN — GET ALL PASSENGERS
+router.get("/", getAllPassengers);
+
+// ADMIN — DELETE PASSENGER
+router.delete("/:id", deletePassenger);
 
 export default router;

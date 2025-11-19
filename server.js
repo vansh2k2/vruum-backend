@@ -10,7 +10,7 @@ dotenv.config();
 const app = express();
 
 // =======================================================
-// CORS (REQUIRED FOR RENDER + LOCALHOST + NETLIFY)
+// CORS
 // =======================================================
 app.use(
   cors({
@@ -39,7 +39,7 @@ import careerRoutes from "./routes/careerRoutes.js";
 import galleryRoutes from "./routes/galleryRoutes.js";
 import supportRoutes from "./routes/supportRoutes.js";
 
-// ⭐ NEW ROUTE → Passenger Auth (REGISTER + LOGIN)
+// ⭐ Passenger Routes
 import passengerAuthRoutes from "./routes/passengerAuthRoutes.js";
 
 // =======================================================
@@ -53,10 +53,10 @@ app.get("/", (req, res) => {
 // CONNECT ALL ROUTES
 // =======================================================
 
-// ⭐ Passenger Auth Routes
-app.use("/api/passenger", passengerAuthRoutes);
+// ⭐ ADMIN PANEL PASSENGERS ROUTE
+app.use("/api/admin/passengers", passengerAuthRoutes);
 
-// Existing Routes
+// ⭐ EXISTING ROUTES
 app.use("/api/admin", adminRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/testimonials", testimonialRoutes);
@@ -68,7 +68,7 @@ app.use("/api/gallery", galleryRoutes);
 app.use("/api/support", supportRoutes);
 
 // =======================================================
-// TEST ROUTE (OPTIONAL)
+// TEST ROUTE
 // =======================================================
 const TestSchema = new mongoose.Schema({
   name: String,
@@ -113,3 +113,4 @@ mongoose
   .catch((err) => {
     console.log("❌ MongoDB error:", err.message);
   });
+

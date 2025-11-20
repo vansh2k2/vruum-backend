@@ -39,11 +39,14 @@ import careerRoutes from "./routes/careerRoutes.js";
 import galleryRoutes from "./routes/galleryRoutes.js";
 import supportRoutes from "./routes/supportRoutes.js";
 
-// ⭐ Passenger Routes
+// Passenger Routes
 import passengerAuthRoutes from "./routes/passengerAuthRoutes.js";
 
-// ⭐ Partner Routes (NEW)
+// Partner Routes
 import partnerRoutes from "./routes/partnerRoutes.js";
+
+// ⭐⭐ NEW: Offer Routes
+import offerRoutes from "./routes/offerRoutes.js";
 
 // =======================================================
 // ROOT TEST ROUTE
@@ -56,13 +59,16 @@ app.get("/", (req, res) => {
 // CONNECT ALL ROUTES
 // =======================================================
 
-// ⭐ Passenger Public Routes
+// Passenger Public Routes
 app.use("/api/passengers", passengerAuthRoutes);
 
-// ⭐ Partner Routes
+// Partner Routes
 app.use("/api/partners", partnerRoutes);
 
-// ⭐ Existing Routes
+// Offer Routes ⭐
+app.use("/api/offers", offerRoutes);
+
+// Existing Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/testimonials", testimonialRoutes);

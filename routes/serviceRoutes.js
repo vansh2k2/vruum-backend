@@ -8,9 +8,9 @@ import {
   deleteService,
 } from "../controllers/serviceController.js";
 
-// yaha apna auth middleware import karo agar hai
+import upload from "../middleware/uploadMiddleware.js"; 
+// agar admin auth lagana ho to yaha import karo
 // import { protectAdmin } from "../middleware/authMiddleware.js";
-// import upload from "../middleware/uploadMiddleware.js"; // multer config
 
 const router = express.Router();
 
@@ -18,18 +18,20 @@ const router = express.Router();
 router.get("/", getServices);
 
 // ADMIN SIDE
-// yaha pe protectAdmin + upload.single("image") laga sakte ho
-router.get("/admin", /*protectAdmin,*/ getAllServices);
+router.get("/admin", getAllServices);
+
 router.post(
   "/admin",
-  /*protectAdmin, upload.single("image"),*/ 
+  upload.single("image"),   // ← IMAGE + FORM DATA YAHI SE AAYEGA
   createService
 );
+
 router.put(
   "/admin/:id",
-  /*protectAdmin, upload.single("image"),*/ 
+  upload.single("image"),   // ← EDIT bhi image support karega
   updateService
 );
-router.delete("/admin/:id", /*protectAdmin,*/ deleteService);
+
+router.delete("/admin/:id", deleteService);
 
 export default router;

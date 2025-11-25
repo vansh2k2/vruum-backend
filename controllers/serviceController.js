@@ -1,7 +1,13 @@
 // backend/controllers/serviceController.js
 import Service from "../models/Service.js";
+import path from "path";
 
-// GET /api/services  -> user side (sirf active + sorted)
+// Helper: full image URL
+const makeImageUrl = (req, filePath) => {
+  return `${req.protocol}://${req.get("host")}/${filePath}`;
+};
+
+// USER SIDE
 export const getServices = async (req, res) => {
   try {
     const services = await Service.find({ isActive: true }).sort({ order: 1 });
@@ -12,7 +18,7 @@ export const getServices = async (req, res) => {
   }
 };
 
-// ADMIN: GET ALL (including inactive)
+// ADMIN GET ALL
 export const getAllServices = async (req, res) => {
   try {
     const services = await Service.find().sort({ order: 1 });
@@ -23,14 +29,14 @@ export const getAllServices = async (req, res) => {
   }
 };
 
-// ADMIN: CREATE
+// CREATE SERVICE
 export const createService = async (req, res) => {
   try {
     const {
       title,
       subtitle,
       description,
-      features, // comma separated string from form
+      features,
       badge,
       gradient,
       bgGradient,
@@ -38,11 +44,10 @@ export const createService = async (req, res) => {
       isActive,
     } = req.body;
 
-    // Agar image upload ho rahi hai (multer se)
-    let imageUrl = req.body.imageUrl;
+    // IMAGE FIX
+    let imageUrl = null;
     if (req.file) {
-      // e.g. /uploads/filename ya Cloudinary URL
-      imageUrl = req.file.path || req.file.location;
+      imageUrl = makeImageUrl(req, req.file.path);
     }
 
     if (!imageUrl) {
@@ -52,9 +57,11 @@ export const createService = async (req, res) => {
       });
     }
 
-    const featureArray = typeof features === "string"
-      ? features.split(",").map((f) => f.trim()).filter(Boolean)
-      : [];
+    // FEATURES SAFE PARSE
+    const featureArray =
+      typeof features === "string"
+        ? features.split(",").map((f) => f.trim()).filter(Boolean)
+        : [];
 
     const service = await Service.create({
       title,
@@ -64,9 +71,9 @@ export const createService = async (req, res) => {
       badge,
       gradient,
       bgGradient,
-      imageUrl,
       order,
       isActive,
+      imageUrl,
     });
 
     res.status(201).json({ success: true, data: service });
@@ -76,7 +83,7 @@ export const createService = async (req, res) => {
   }
 };
 
-// ADMIN: UPDATE
+// UPDATE SERVICE
 export const updateService = async (req, res) => {
   try {
     const { id } = req.params;
@@ -104,6 +111,7 @@ export const updateService = async (req, res) => {
       isActive,
     };
 
+    // FEATURES SAFE PARSE
     if (features) {
       updates.features = features
         .split(",")
@@ -111,8 +119,9 @@ export const updateService = async (req, res) => {
         .filter(Boolean);
     }
 
+    // IMAGE UPDATE
     if (req.file) {
-      updates.imageUrl = req.file.path || req.file.location;
+      updates.imageUrl = makeImageUrl(req, req.file.path);
     }
 
     const service = await Service.findByIdAndUpdate(id, updates, {
@@ -132,7 +141,7 @@ export const updateService = async (req, res) => {
   }
 };
 
-// ADMIN: DELETE
+// DELETE SERVICE
 export const deleteService = async (req, res) => {
   try {
     const { id } = req.params;

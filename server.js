@@ -49,14 +49,18 @@ import partnerRoutes from "./routes/partnerRoutes.js";
 import offerRoutes from "./routes/offerRoutes.js";
 
 // ⭐⭐ NEW: Carousel Routes
-import carouselRoutes from "./routes/carouselRoutes.js";   // <-- ADD HERE
+import carouselRoutes from "./routes/carouselRoutes.js";
 
+// ⭐⭐ NEW: Service Routes
+import serviceRoutes from "./routes/serviceRoutes.js";
 
 // =======================================================
 // ROOT TEST ROUTE
 // =======================================================
 app.get("/", (req, res) => {
-  res.send("🚀 Vruum Backend Running Successfully. Passenger + Partner + Support + Admin API Online ✔");
+  res.send(
+    "🚀 Vruum Backend Running Successfully. Passenger + Partner + Support + Admin API Online ✔"
+  );
 });
 
 // =======================================================
@@ -73,7 +77,10 @@ app.use("/api/partners", partnerRoutes);
 app.use("/api/offers", offerRoutes);
 
 // ⭐⭐ NEW — CAROUSEL ROUTES
-app.use("/api/carousel", carouselRoutes);  // <-- ADD HERE
+app.use("/api/carousel", carouselRoutes);
+
+// ⭐⭐ NEW — SERVICE ROUTES
+app.use("/api/services", serviceRoutes);
 
 // Existing Routes
 app.use("/api/admin", adminRoutes);
@@ -126,7 +133,9 @@ mongoose
   .then(() => {
     console.log("✅ MongoDB connected successfully!");
     app.listen(PORT, () =>
-      console.log(`🚀 Server running on PORT ${PORT} — Ready for Render Deploy ✔`)
+      console.log(
+        `🚀 Server running on PORT ${PORT} — Ready for Render Deploy ✔`
+      )
     );
   })
   .catch((err) => {

@@ -48,6 +48,10 @@ import partnerRoutes from "./routes/partnerRoutes.js";
 // ⭐⭐ NEW: Offer Routes
 import offerRoutes from "./routes/offerRoutes.js";
 
+// ⭐⭐ NEW: Carousel Routes
+import carouselRoutes from "./routes/carouselRoutes.js";   // <-- ADD HERE
+
+
 // =======================================================
 // ROOT TEST ROUTE
 // =======================================================
@@ -67,6 +71,9 @@ app.use("/api/partners", partnerRoutes);
 
 // Offer Routes ⭐
 app.use("/api/offers", offerRoutes);
+
+// ⭐⭐ NEW — CAROUSEL ROUTES
+app.use("/api/carousel", carouselRoutes);  // <-- ADD HERE
 
 // Existing Routes
 app.use("/api/admin", adminRoutes);

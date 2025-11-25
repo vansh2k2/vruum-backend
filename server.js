@@ -5,6 +5,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
+import path from "path";
 
 dotenv.config();
 const app = express();
@@ -27,6 +28,11 @@ app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
 // =======================================================
+// STATIC UPLOAD FOLDER (MOST IMPORTANT FOR IMAGES)
+// =======================================================
+app.use("/uploads", express.static("uploads")); // ← IMAGE FIX
+
+// =======================================================
 // IMPORT ROUTES
 // =======================================================
 import adminRoutes from "./routes/adminRoutes.js";
@@ -45,44 +51,31 @@ import passengerAuthRoutes from "./routes/passengerAuthRoutes.js";
 // Partner Routes
 import partnerRoutes from "./routes/partnerRoutes.js";
 
-// ⭐⭐ NEW: Offer Routes
+// Offer Routes ⭐
 import offerRoutes from "./routes/offerRoutes.js";
 
-// ⭐⭐ NEW: Carousel Routes
+// Carousel Routes ⭐
 import carouselRoutes from "./routes/carouselRoutes.js";
 
-// ⭐⭐ NEW: Service Routes
+// Service Routes ⭐
 import serviceRoutes from "./routes/serviceRoutes.js";
 
 // =======================================================
-// ROOT TEST ROUTE
+// TEST ROOT
 // =======================================================
 app.get("/", (req, res) => {
-  res.send(
-    "🚀 Vruum Backend Running Successfully. Passenger + Partner + Support + Admin API Online ✔"
-  );
+  res.send("🚀 Vruum Backend Running Successfully! All APIs are online ✔");
 });
 
 // =======================================================
 // CONNECT ALL ROUTES
 // =======================================================
-
-// Passenger Public Routes
 app.use("/api/passengers", passengerAuthRoutes);
-
-// Partner Routes
 app.use("/api/partners", partnerRoutes);
-
-// Offer Routes ⭐
 app.use("/api/offers", offerRoutes);
-
-// ⭐⭐ NEW — CAROUSEL ROUTES
 app.use("/api/carousel", carouselRoutes);
-
-// ⭐⭐ NEW — SERVICE ROUTES
 app.use("/api/services", serviceRoutes);
 
-// Existing Routes
 app.use("/api/admin", adminRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/testimonials", testimonialRoutes);
@@ -94,7 +87,7 @@ app.use("/api/gallery", galleryRoutes);
 app.use("/api/support", supportRoutes);
 
 // =======================================================
-// TEST ROUTE
+// SIMPLE TEST ROUTE
 // =======================================================
 const TestSchema = new mongoose.Schema({
   name: String,
@@ -104,10 +97,7 @@ const TestModel = mongoose.model("Test", TestSchema);
 
 app.post("/api/test", async (req, res) => {
   try {
-    const doc = await TestModel.create({
-      name: req.body.name,
-      email: req.body.email,
-    });
+    const doc = await TestModel.create(req.body);
 
     res.json({
       success: true,
@@ -133,11 +123,9 @@ mongoose
   .then(() => {
     console.log("✅ MongoDB connected successfully!");
     app.listen(PORT, () =>
-      console.log(
-        `🚀 Server running on PORT ${PORT} — Ready for Render Deploy ✔`
-      )
+      console.log(`🚀 Server running on PORT ${PORT} — Ready for Render ✔`)
     );
   })
   .catch((err) => {
-    console.log("❌ MongoDB error:", err.message);
+    console.log("❌ MongoDB connection error:", err.message);
   });

@@ -1,13 +1,17 @@
 // backend/controllers/serviceController.js
+
 import Service from "../models/Service.js";
 import path from "path";
 
-// Helper: full image URL
+// AUTO FULL IMAGE URL BUILDER
 const makeImageUrl = (req, filePath) => {
-  return `${req.protocol}://${req.get("host")}/${filePath}`;
+  // Render / Localhost both will work
+  return `${req.protocol}://${req.get("host")}/${filePath.replace(/\\/g, "/")}`;
 };
 
-// USER SIDE
+// ==========================================
+// USER SIDE - ACTIVE SERVICES ONLY
+// ==========================================
 export const getServices = async (req, res) => {
   try {
     const services = await Service.find({ isActive: true }).sort({ order: 1 });
@@ -18,7 +22,9 @@ export const getServices = async (req, res) => {
   }
 };
 
-// ADMIN GET ALL
+// ==========================================
+// ADMIN - GET ALL SERVICES
+// ==========================================
 export const getAllServices = async (req, res) => {
   try {
     const services = await Service.find().sort({ order: 1 });
@@ -29,7 +35,9 @@ export const getAllServices = async (req, res) => {
   }
 };
 
-// CREATE SERVICE
+// ==========================================
+// ADMIN - CREATE SERVICE
+// ==========================================
 export const createService = async (req, res) => {
   try {
     const {
@@ -45,25 +53,22 @@ export const createService = async (req, res) => {
     } = req.body;
 
     // IMAGE FIX
-    let imageUrl = null;
-    if (req.file) {
-      imageUrl = makeImageUrl(req, req.file.path);
-    }
-
-    if (!imageUrl) {
+    if (!req.file) {
       return res.status(400).json({
         success: false,
         message: "Image is required",
       });
     }
 
-    // FEATURES SAFE PARSE
+    const imageUrl = makeImageUrl(req, req.file.path);
+
+    // FEATURES ARRAY
     const featureArray =
       typeof features === "string"
         ? features.split(",").map((f) => f.trim()).filter(Boolean)
         : [];
 
-    const service = await Service.create({
+    const newService = await Service.create({
       title,
       subtitle,
       description,
@@ -76,14 +81,16 @@ export const createService = async (req, res) => {
       imageUrl,
     });
 
-    res.status(201).json({ success: true, data: service });
+    res.status(201).json({ success: true, data: newService });
   } catch (err) {
     console.error("createService error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// UPDATE SERVICE
+// ==========================================
+// ADMIN - UPDATE SERVICE
+// ==========================================
 export const updateService = async (req, res) => {
   try {
     const { id } = req.params;
@@ -111,7 +118,7 @@ export const updateService = async (req, res) => {
       isActive,
     };
 
-    // FEATURES SAFE PARSE
+    // FEATURE FIX
     if (features) {
       updates.features = features
         .split(",")
@@ -119,38 +126,43 @@ export const updateService = async (req, res) => {
         .filter(Boolean);
     }
 
-    // IMAGE UPDATE
+    // IMAGE UPDATED?
     if (req.file) {
       updates.imageUrl = makeImageUrl(req, req.file.path);
     }
 
-    const service = await Service.findByIdAndUpdate(id, updates, {
+    const updated = await Service.findByIdAndUpdate(id, updates, {
       new: true,
     });
 
-    if (!service) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Service not found" });
+    if (!updated) {
+      return res.status(404).json({
+        success: false,
+        message: "Service not found",
+      });
     }
 
-    res.status(200).json({ success: true, data: service });
+    res.status(200).json({ success: true, data: updated });
   } catch (err) {
     console.error("updateService error:", err);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// DELETE SERVICE
+// ==========================================
+// ADMIN - DELETE SERVICE
+// ==========================================
 export const deleteService = async (req, res) => {
   try {
     const { id } = req.params;
-    const service = await Service.findByIdAndDelete(id);
 
-    if (!service) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Service not found" });
+    const deleted = await Service.findByIdAndDelete(id);
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: "Service not found",
+      });
     }
 
     res.status(200).json({ success: true, message: "Service deleted" });

@@ -1,108 +1,152 @@
+// backend/controllers/serviceController.js
 import Service from "../models/Service.js";
 
-// ================================
-// GET ALL SERVICES
-// ================================
+// GET /api/services  -> user side (sirf active + sorted)
 export const getServices = async (req, res) => {
   try {
-    const services = await Service.find().sort({ createdAt: -1 });
-    res.json({ success: true, services });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    const services = await Service.find({ isActive: true }).sort({ order: 1 });
+    res.status(200).json({ success: true, data: services });
+  } catch (err) {
+    console.error("getServices error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// ================================
-// GET SINGLE SERVICE
-// ================================
-export const getService = async (req, res) => {
+// ADMIN: GET ALL (including inactive)
+export const getAllServices = async (req, res) => {
   try {
-    const service = await Service.findById(req.params.id);
-    if (!service) {
-      return res.status(404).json({ success: false, message: "Service not found" });
-    }
-    res.json({ success: true, service });
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    const services = await Service.find().sort({ order: 1 });
+    res.status(200).json({ success: true, data: services });
+  } catch (err) {
+    console.error("getAllServices error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// ================================
-// CREATE SERVICE
-// ================================
+// ADMIN: CREATE
 export const createService = async (req, res) => {
   try {
-    const { name, icon, image, features, isActive } = req.body;
+    const {
+      title,
+      subtitle,
+      description,
+      features, // comma separated string from form
+      badge,
+      gradient,
+      bgGradient,
+      order,
+      isActive,
+    } = req.body;
 
-    if (!name || !icon || !image) {
+    // Agar image upload ho rahi hai (multer se)
+    let imageUrl = req.body.imageUrl;
+    if (req.file) {
+      // e.g. /uploads/filename ya Cloudinary URL
+      imageUrl = req.file.path || req.file.location;
+    }
+
+    if (!imageUrl) {
       return res.status(400).json({
         success: false,
-        message: "Name, icon and image are required",
+        message: "Image is required",
       });
     }
 
-    const newService = await Service.create({
-      name,
-      icon,
-      image,
-      features: features || [],
-      isActive: isActive ?? true,
+    const featureArray = typeof features === "string"
+      ? features.split(",").map((f) => f.trim()).filter(Boolean)
+      : [];
+
+    const service = await Service.create({
+      title,
+      subtitle,
+      description,
+      features: featureArray,
+      badge,
+      gradient,
+      bgGradient,
+      imageUrl,
+      order,
+      isActive,
     });
 
-    res.json({
-      success: true,
-      message: "Service created successfully",
-      service: newService,
-    });
-
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(201).json({ success: true, data: service });
+  } catch (err) {
+    console.error("createService error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// ================================
-// UPDATE SERVICE
-// ================================
+// ADMIN: UPDATE
 export const updateService = async (req, res) => {
   try {
-    const updated = await Service.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      { new: true }
-    );
+    const { id } = req.params;
 
-    if (!updated) {
-      return res.status(404).json({ success: false, message: "Service not found" });
+    const {
+      title,
+      subtitle,
+      description,
+      features,
+      badge,
+      gradient,
+      bgGradient,
+      order,
+      isActive,
+    } = req.body;
+
+    const updates = {
+      title,
+      subtitle,
+      description,
+      badge,
+      gradient,
+      bgGradient,
+      order,
+      isActive,
+    };
+
+    if (features) {
+      updates.features = features
+        .split(",")
+        .map((f) => f.trim())
+        .filter(Boolean);
     }
 
-    res.json({
-      success: true,
-      message: "Service updated successfully",
-      service: updated,
+    if (req.file) {
+      updates.imageUrl = req.file.path || req.file.location;
+    }
+
+    const service = await Service.findByIdAndUpdate(id, updates, {
+      new: true,
     });
 
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    if (!service) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Service not found" });
+    }
+
+    res.status(200).json({ success: true, data: service });
+  } catch (err) {
+    console.error("updateService error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };
 
-// ================================
-// DELETE SERVICE
-// ================================
+// ADMIN: DELETE
 export const deleteService = async (req, res) => {
   try {
-    const service = await Service.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+    const service = await Service.findByIdAndDelete(id);
 
     if (!service) {
-      return res.status(404).json({ success: false, message: "Service not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Service not found" });
     }
 
-    res.json({
-      success: true,
-      message: "Service deleted successfully",
-    });
-
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(200).json({ success: true, message: "Service deleted" });
+  } catch (err) {
+    console.error("deleteService error:", err);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

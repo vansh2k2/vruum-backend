@@ -5,7 +5,6 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
-import path from "path";
 
 dotenv.config();
 const app = express();
@@ -28,9 +27,9 @@ app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
 // =======================================================
-// STATIC UPLOAD FOLDER (MOST IMPORTANT FOR IMAGES)
+// STATIC UPLOAD FOLDER
 // =======================================================
-app.use("/uploads", express.static("uploads")); // ← IMAGE FIX
+app.use("/uploads", express.static("uploads"));
 
 // =======================================================
 // IMPORT ROUTES
@@ -45,20 +44,15 @@ import careerRoutes from "./routes/careerRoutes.js";
 import galleryRoutes from "./routes/galleryRoutes.js";
 import supportRoutes from "./routes/supportRoutes.js";
 
-// Passenger Routes
 import passengerAuthRoutes from "./routes/passengerAuthRoutes.js";
-
-// Partner Routes
 import partnerRoutes from "./routes/partnerRoutes.js";
 
-// Offer Routes ⭐
 import offerRoutes from "./routes/offerRoutes.js";
-
-// Carousel Routes ⭐
 import carouselRoutes from "./routes/carouselRoutes.js";
-
-// Service Routes ⭐
 import serviceRoutes from "./routes/serviceRoutes.js";
+
+// ⭐ NEW — OFFER STRIP ROUTE
+import offerStripRoutes from "./routes/offerStripRoutes.js";
 
 // =======================================================
 // TEST ROOT
@@ -85,6 +79,9 @@ app.use("/api/settings", settingRoutes);
 app.use("/api/careers", careerRoutes);
 app.use("/api/gallery", galleryRoutes);
 app.use("/api/support", supportRoutes);
+
+// ⭐ ADDING OFFER STRIP API
+app.use("/api/offer-strip", offerStripRoutes);
 
 // =======================================================
 // SIMPLE TEST ROUTE

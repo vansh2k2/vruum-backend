@@ -51,8 +51,10 @@ import offerRoutes from "./routes/offerRoutes.js";
 import carouselRoutes from "./routes/carouselRoutes.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
 
-// ⭐ NEW — OFFER STRIP ROUTE
 import offerStripRoutes from "./routes/offerStripRoutes.js";
+
+// ⭐ NEW — ABOUT ROUTE
+import aboutRoutes from "./routes/aboutRoutes.js";
 
 // =======================================================
 // TEST ROOT
@@ -80,8 +82,10 @@ app.use("/api/careers", careerRoutes);
 app.use("/api/gallery", galleryRoutes);
 app.use("/api/support", supportRoutes);
 
-// ⭐ ADDING OFFER STRIP API
 app.use("/api/offer-strip", offerStripRoutes);
+
+// ⭐ NEW ABOUT API
+app.use("/api/about", aboutRoutes);
 
 // =======================================================
 // SIMPLE TEST ROUTE

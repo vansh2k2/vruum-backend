@@ -1,34 +1,30 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
-const aboutSchema = new mongoose.Schema(
+const AboutSchema = new mongoose.Schema(
   {
-    // Main heading text
     heading: {
       type: String,
       default: "We Provide Trusted Cab Service",
     },
 
-    // Experience badge
     experienceYears: {
-      type: String, // "5+"
+      type: String,
       default: "5+",
     },
     experienceLabel: {
-      type: String, // "Years of Trusted Service"
+      type: String,
       default: "Years of Trusted Service",
     },
 
-    // Images
     mainImage: {
-      type: String, // URL
+      type: String,
       required: true,
     },
     secondaryImage: {
-      type: String, // URL
+      type: String,
       required: true,
     },
 
-    // Mission
     missionTitle: {
       type: String,
       default: "Our Mission",
@@ -38,11 +34,11 @@ const aboutSchema = new mongoose.Schema(
       required: true,
     },
 
-    // Vision
     visionTitle: {
       type: String,
       default: "Our Vision",
     },
+
     visionPoints: [
       {
         type: String,
@@ -53,4 +49,4 @@ const aboutSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("About", aboutSchema);
+export default mongoose.model("About", AboutSchema);

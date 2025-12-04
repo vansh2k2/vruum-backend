@@ -1,7 +1,7 @@
-const About = require("../models/About");
+import About from "../models/About.js";
 
-// GET /api/about  (public – frontend use)
-exports.getAbout = async (req, res) => {
+// GET /api/about (public)
+export const getAbout = async (req, res) => {
   try {
     const about = await About.findOne();
     if (!about) {
@@ -14,10 +14,9 @@ exports.getAbout = async (req, res) => {
   }
 };
 
-// POST /api/about  (admin – create first time)
-exports.createAbout = async (req, res) => {
+// POST /api/about (admin)
+export const createAbout = async (req, res) => {
   try {
-    // If you are using multer/cloudinary, you can get URLs from req.files / req.body
     const {
       heading,
       experienceYears,
@@ -25,7 +24,7 @@ exports.createAbout = async (req, res) => {
       missionTitle,
       missionText,
       visionTitle,
-      visionPoints, // comma or \n separated string from frontend
+      visionPoints,
       mainImage,
       secondaryImage,
     } = req.body;
@@ -57,8 +56,8 @@ exports.createAbout = async (req, res) => {
   }
 };
 
-// PUT /api/about/:id  (admin – update)
-exports.updateAbout = async (req, res) => {
+// PUT /api/about/:id (admin)
+export const updateAbout = async (req, res) => {
   try {
     const {
       heading,
@@ -108,8 +107,8 @@ exports.updateAbout = async (req, res) => {
   }
 };
 
-// DELETE /api/about/:id (optional)
-exports.deleteAbout = async (req, res) => {
+// DELETE /api/about/:id
+export const deleteAbout = async (req, res) => {
   try {
     const about = await About.findByIdAndDelete(req.params.id);
     if (!about) {

@@ -10,15 +10,31 @@ dotenv.config();
 const app = express();
 
 // =======================================================
-// CORS
+// CORS FIX (FOR LOCAL + RENDER)
 // =======================================================
 app.use(
   cors({
-    origin: "*",
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "https://vruum-cab.onrender.com",        // your main website (if deployed)
+      "https://vruum-cab-admin.onrender.com",  // your admin panel (if deployed)
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// Extra headers for Render (IMPORTANT)
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+  next();
+});
 
 // =======================================================
 // BODY PARSERS

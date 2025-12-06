@@ -16,14 +16,19 @@ const uploadToCloudinary = async (file) => {
 };
 
 // =============================
-// REGISTER PARTNER
+// REGISTER PARTNER / DRIVER / AMBULANCE / HEARSE
 // =============================
 export const registerPartner = async (req, res) => {
   try {
-    let data = req.body;
+    // 🔥 IMPORTANT — FIX: Always include category
+    let data = {
+      ...req.body,
+      category: req.body.category || "partner",
+    };
+
     let files = req.files;
 
-    // 🔥 password check
+    // Validate password
     if (!data.password) {
       return res.status(400).json({
         success: false,
@@ -31,7 +36,7 @@ export const registerPartner = async (req, res) => {
       });
     }
 
-    // 🔥 hash password
+    // Hash password
     const hashedPassword = await bcrypt.hash(data.password, 10);
 
     // Upload images
@@ -51,12 +56,13 @@ export const registerPartner = async (req, res) => {
     ];
 
     for (const field of uploadFields) {
-      if (files[field]) {
+      if (files && files[field]) {
         const url = await uploadToCloudinary(files[field][0]);
         uploadedFiles[field] = url;
       }
     }
 
+    // Create partner record
     const newPartner = await Partner.create({
       ...data,
       ...uploadedFiles,
@@ -66,7 +72,7 @@ export const registerPartner = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Partner registered successfully!",
+      message: "Registration successful!",
       partner: newPartner,
     });
   } catch (error) {
@@ -79,7 +85,7 @@ export const registerPartner = async (req, res) => {
 };
 
 // =============================
-// LOGIN PARTNER (NEW)
+// LOGIN PARTNER
 // =============================
 export const loginPartner = async (req, res) => {
   try {
@@ -101,7 +107,6 @@ export const loginPartner = async (req, res) => {
       });
     }
 
-    // Match password
     const isMatch = await bcrypt.compare(password, partner.password);
     if (!isMatch) {
       return res.status(400).json({
@@ -110,7 +115,6 @@ export const loginPartner = async (req, res) => {
       });
     }
 
-    // Check approval
     if (partner.status !== "approved") {
       return res.status(403).json({
         success: false,
@@ -121,7 +125,6 @@ export const loginPartner = async (req, res) => {
       });
     }
 
-    // JWT Token
     const token = jwt.sign(
       { id: partner._id, role: "partner" },
       process.env.JWT_SECRET,

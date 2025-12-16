@@ -6,7 +6,7 @@ import Carousel from "../models/Carousel.js";
 export const createCarousel = async (req, res) => {
   try {
     let {
-      title,
+      title, // optional (backward compatibility)
       phrases,
       subtitle,
       buttonText,
@@ -16,45 +16,47 @@ export const createCarousel = async (req, res) => {
     } = req.body;
 
     // -------------------------------
-    // VALIDATION: Images
+    // VALIDATION: Images (3–10 allowed)
     // -------------------------------
-    if (!images || !Array.isArray(images) || images.length !== 3) {
+    if (!images || !Array.isArray(images) || images.length < 3 || images.length > 10) {
       return res.status(400).json({
         success: false,
-        message: "Exactly 3 images are required",
+        message: "Carousel must have between 3 and 10 images",
       });
     }
 
     // -------------------------------
-    // VALIDATION: Main Required Fields
+    // VALIDATION: Subtitle (required)
     // -------------------------------
-    if (!title || !subtitle) {
+    if (!subtitle) {
       return res.status(400).json({
         success: false,
-        message: "Title and subtitle are required",
+        message: "Subtitle is required",
       });
     }
 
     // -------------------------------
-    // VALIDATION: Phrases — optional but if provided then 3–5 required
+    // VALIDATION: Phrases (REQUIRED 3–5)
     // -------------------------------
-    if (phrases && phrases.length > 0) {
-      if (!Array.isArray(phrases)) {
-        return res.status(400).json({
-          success: false,
-          message: "Phrases must be an array",
-        });
-      }
+    if (!phrases || !Array.isArray(phrases)) {
+      return res.status(400).json({
+        success: false,
+        message: "Phrases must be an array",
+      });
+    }
 
-      if (phrases.length < 3 || phrases.length > 5) {
-        return res.status(400).json({
-          success: false,
-          message: "Phrases must contain between 3 to 5 items",
-        });
-      }
-    } else {
-      // If phrases are empty → fallback to 1st phrase as title
-      phrases = [title];
+    if (phrases.length < 3 || phrases.length > 5) {
+      return res.status(400).json({
+        success: false,
+        message: "Phrases must contain between 3 to 5 items",
+      });
+    }
+
+    // -------------------------------
+    // AUTO TITLE SYNC
+    // -------------------------------
+    if (!title) {
+      title = phrases[0];
     }
 
     // -------------------------------
@@ -70,13 +72,13 @@ export const createCarousel = async (req, res) => {
       isActive,
     });
 
-    return res.json({
+    return res.status(201).json({
       success: true,
       message: "Carousel created successfully",
       carousel: newCarousel,
     });
   } catch (error) {
-    console.error("❌ Error creating carousel:", error.message);
+    console.error("❌ Error creating carousel:", error);
     return res.status(500).json({
       success: false,
       message: "Server error while creating carousel",
@@ -96,7 +98,7 @@ export const getAllCarousel = async (req, res) => {
       carousels,
     });
   } catch (error) {
-    console.error("❌ Error fetching carousels:", error.message);
+    console.error("❌ Error fetching carousels:", error);
     return res.status(500).json({
       success: false,
       message: "Server error while fetching carousels",
@@ -118,7 +120,7 @@ export const getActiveCarousel = async (req, res) => {
       carousel: active || null,
     });
   } catch (error) {
-    console.error("❌ Error fetching active carousel:", error.message);
+    console.error("❌ Error fetching active carousel:", error);
     return res.status(500).json({
       success: false,
       message: "Server error while fetching active carousel",
@@ -144,19 +146,32 @@ export const updateCarousel = async (req, res) => {
 
     const updateData = {};
 
-    if (title) updateData.title = title;
+    // -------------------------------
+    // BASIC FIELD UPDATES
+    // -------------------------------
     if (subtitle) updateData.subtitle = subtitle;
     if (buttonText) updateData.buttonText = buttonText;
     if (overlayOpacity !== undefined)
       updateData.overlayOpacity = overlayOpacity;
     if (typeof isActive === "boolean") updateData.isActive = isActive;
-    if (images && Array.isArray(images) && images.length === 3)
-      updateData.images = images;
 
     // -------------------------------
-    // PHRASES VALIDATION & MERGE
+    // IMAGES UPDATE (3–10 allowed)
     // -------------------------------
-    if (phrases && phrases.length > 0) {
+    if (images && Array.isArray(images)) {
+      if (images.length < 3 || images.length > 10) {
+        return res.status(400).json({
+          success: false,
+          message: "Carousel must have between 3 and 10 images",
+        });
+      }
+      updateData.images = images;
+    }
+
+    // -------------------------------
+    // PHRASES UPDATE (3–5 required)
+    // -------------------------------
+    if (phrases && Array.isArray(phrases)) {
       if (phrases.length < 3 || phrases.length > 5) {
         return res.status(400).json({
           success: false,
@@ -164,7 +179,13 @@ export const updateCarousel = async (req, res) => {
         });
       }
       updateData.phrases = phrases;
+      updateData.title = phrases[0]; // 🔥 keep title synced
     }
+
+    // -------------------------------
+    // TITLE UPDATE (OPTIONAL)
+    // -------------------------------
+    if (title) updateData.title = title;
 
     const updated = await Carousel.findByIdAndUpdate(id, updateData, {
       new: true,
@@ -183,7 +204,7 @@ export const updateCarousel = async (req, res) => {
       carousel: updated,
     });
   } catch (error) {
-    console.error("❌ Error updating carousel:", error.message);
+    console.error("❌ Error updating carousel:", error);
     return res.status(500).json({
       success: false,
       message: "Server error while updating carousel",
@@ -212,7 +233,7 @@ export const deleteCarousel = async (req, res) => {
       message: "Carousel deleted successfully",
     });
   } catch (error) {
-    console.error("❌ Error deleting carousel:", error.message);
+    console.error("❌ Error deleting carousel:", error);
     return res.status(500).json({
       success: false,
       message: "Server error while deleting carousel",

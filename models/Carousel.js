@@ -2,31 +2,32 @@ import mongoose from "mongoose";
 
 const carouselSchema = new mongoose.Schema(
   {
-    // 3 images (base64 ya URL)
+    // ✅ 3–10 images allowed (base64 or URL)
     images: {
       type: [String],
       required: true,
       validate: {
-        validator: (val) => Array.isArray(val) && val.length === 3,
-        message: "Exactly 3 images are required",
+        validator: function (val) {
+          return Array.isArray(val) && val.length >= 3 && val.length <= 10;
+        },
+        message: "Carousel must have between 3 and 10 images",
       },
     },
 
-    // ❗ OLD TITLE (will act as first phrase for backward compatibility)
+    // OLD TITLE (backward compatibility)
     title: {
       type: String,
       required: true,
       trim: true,
     },
 
-    // ❗ NEW FIELD — MULTIPLE PHRASES (TYPEWRITER)
+    // MULTIPLE PHRASES (TYPEWRITER)
     phrases: {
       type: [String],
       validate: {
         validator: function (value) {
-          // Allowed empty ONLY for backward compatibility
+          // Allow empty for backward compatibility
           if (!value || value.length === 0) return true;
-
           return value.length >= 3 && value.length <= 5;
         },
         message: "Phrases must be between 3 to 5 items",
@@ -34,21 +35,21 @@ const carouselSchema = new mongoose.Schema(
       default: [],
     },
 
-    // Hero description / subtitle
+    // Hero description
     subtitle: {
       type: String,
       required: true,
       trim: true,
     },
 
-    // Optional CTA text
+    // CTA text
     buttonText: {
       type: String,
       default: "Book Your Ride Now",
       trim: true,
     },
 
-    // Overlay opacity (0 – 1)
+    // Overlay opacity
     overlayOpacity: {
       type: Number,
       default: 0.8,
@@ -65,13 +66,13 @@ const carouselSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🔥 AUTO-MIGRATION LOGIC — Convert old "title" to first phrase
+// 🔥 AUTO-MIGRATION — title → first phrase
 carouselSchema.pre("save", function (next) {
   if (this.phrases.length === 0 && this.title) {
     this.phrases = [this.title];
   }
 
-  // Ensure max 5 always
+  // Ensure max 5 phrases
   if (this.phrases.length > 5) {
     this.phrases = this.phrases.slice(0, 5);
   }
@@ -80,5 +81,4 @@ carouselSchema.pre("save", function (next) {
 });
 
 const Carousel = mongoose.model("Carousel", carouselSchema);
-
 export default Carousel;

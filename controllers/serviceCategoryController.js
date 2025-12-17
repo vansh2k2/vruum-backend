@@ -4,9 +4,18 @@ import ServiceCategory from "../models/ServiceCategory.js";
 export const createServiceCategory = async (req, res) => {
   try {
     const category = await ServiceCategory.create(req.body);
-    res.status(201).json(category);
+
+    res.status(201).json({
+      success: true,
+      message: "Service category created successfully",
+      category,
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("CREATE CATEGORY ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message || "Failed to create category",
+    });
   }
 };
 
@@ -15,9 +24,17 @@ export const getServiceCategories = async (req, res) => {
   try {
     const categories = await ServiceCategory.find()
       .sort({ order: 1, createdAt: -1 });
-    res.json(categories);
+
+    res.status(200).json({
+      success: true,
+      categories,
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("FETCH CATEGORY ERROR:", err);
+    res.status(500).json({
+      success: false,
+      message: err.message || "Failed to fetch categories",
+    });
   }
 };
 
@@ -29,9 +46,16 @@ export const updateServiceCategory = async (req, res) => {
       req.body,
       { new: true }
     );
-    res.json(updated);
+
+    res.status(200).json({
+      success: true,
+      category: updated,
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };
 
@@ -39,8 +63,15 @@ export const updateServiceCategory = async (req, res) => {
 export const deleteServiceCategory = async (req, res) => {
   try {
     await ServiceCategory.findByIdAndDelete(req.params.id);
-    res.json({ message: "Category deleted" });
+
+    res.status(200).json({
+      success: true,
+      message: "Category deleted",
+    });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({
+      success: false,
+      message: err.message,
+    });
   }
 };

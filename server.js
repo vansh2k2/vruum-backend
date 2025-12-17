@@ -1,54 +1,13 @@
 // =======================================================
-// IMPORTS
+// CORE IMPORTS
 // =======================================================
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 
-dotenv.config();
-const app = express();
-
 // =======================================================
-// CORS FIX (FOR LOCAL + RENDER)
-// =======================================================
-app.use(
-  cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:5174",
-      "https://vruum-cab.onrender.com",        // your main website (if deployed)
-      "https://vruum-cab-admin.onrender.com",  // your admin panel (if deployed)
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
-
-// Extra headers for Render (IMPORTANT)
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-  );
-  next();
-});
-
-// =======================================================
-// BODY PARSERS
-// =======================================================
-app.use(express.json({ limit: "25mb" }));
-app.use(express.urlencoded({ extended: true, limit: "25mb" }));
-
-// =======================================================
-// STATIC UPLOAD FOLDER
-// =======================================================
-app.use("/uploads", express.static("uploads"));
-
-// =======================================================
-// IMPORT ROUTES
+// ROUTE IMPORTS
 // =======================================================
 import adminRoutes from "./routes/adminRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
@@ -66,28 +25,71 @@ import partnerRoutes from "./routes/partnerRoutes.js";
 import offerRoutes from "./routes/offerRoutes.js";
 import carouselRoutes from "./routes/carouselRoutes.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
-
 import offerStripRoutes from "./routes/offerStripRoutes.js";
-
-// ⭐ NEW — ABOUT ROUTE
 import aboutRoutes from "./routes/aboutRoutes.js";
 
+// ⭐ NEW — SERVICES DROPDOWN BACKEND
+import serviceCategoryRoutes from "./routes/serviceCategoryRoutes.js";
+import subServiceRoutes from "./routes/subServiceRoutes.js";
+
 // =======================================================
-// TEST ROOT
+// APP INIT
+// =======================================================
+dotenv.config();
+const app = express();
+
+// =======================================================
+// CORS CONFIG (LOCAL + RENDER SAFE)
+// =======================================================
+const allowedOrigins = [
+  "http://localhost:5173",
+  "http://localhost:5174",
+  "https://vruum-cab.onrender.com",
+  "https://vruum-cab-admin.onrender.com",
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("CORS not allowed"));
+      }
+    },
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// =======================================================
+// BODY PARSERS
+// =======================================================
+app.use(express.json({ limit: "25mb" }));
+app.use(express.urlencoded({ extended: true, limit: "25mb" }));
+
+// =======================================================
+// STATIC FILES
+// =======================================================
+app.use("/uploads", express.static("uploads"));
+
+// =======================================================
+// ROOT HEALTH CHECK
 // =======================================================
 app.get("/", (req, res) => {
-  res.send("🚀 Vruum Backend Running Successfully! All APIs are online ✔");
+  res.status(200).send("🚀 Vruum Backend Running Successfully ✔");
 });
 
 // =======================================================
-// CONNECT ALL ROUTES
+// API ROUTES
 // =======================================================
+
+// AUTH / USERS
 app.use("/api/passengers", passengerAuthRoutes);
 app.use("/api/partners", partnerRoutes);
-app.use("/api/offers", offerRoutes);
-app.use("/api/carousel", carouselRoutes);
-app.use("/api/services", serviceRoutes);
 
+// CORE CONTENT
 app.use("/api/admin", adminRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/testimonials", testimonialRoutes);
@@ -97,40 +99,43 @@ app.use("/api/settings", settingRoutes);
 app.use("/api/careers", careerRoutes);
 app.use("/api/gallery", galleryRoutes);
 app.use("/api/support", supportRoutes);
-
-app.use("/api/offer-strip", offerStripRoutes);
-
-// ⭐ NEW ABOUT API
 app.use("/api/about", aboutRoutes);
 
-// =======================================================
-// SIMPLE TEST ROUTE
-// =======================================================
-const TestSchema = new mongoose.Schema({
-  name: String,
-  email: String,
-});
-const TestModel = mongoose.model("Test", TestSchema);
+// OFFERS / UI
+app.use("/api/offers", offerRoutes);
+app.use("/api/offer-strip", offerStripRoutes);
+app.use("/api/carousel", carouselRoutes);
 
-app.post("/api/test", async (req, res) => {
-  try {
-    const doc = await TestModel.create(req.body);
+// EXISTING SERVICES
+app.use("/api/services", serviceRoutes);
 
-    res.json({
-      success: true,
-      message: "Test data saved successfully!",
-      data: doc,
-    });
-  } catch (err) {
-    res.status(500).json({
-      success: false,
-      error: err.message,
-    });
-  }
+// ⭐ NEW — SERVICES DROPDOWN (ADMIN + FRONTEND)
+app.use("/api/service-categories", serviceCategoryRoutes);
+app.use("/api/sub-services", subServiceRoutes);
+
+// =======================================================
+// 404 HANDLER
+// =======================================================
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    message: "API route not found",
+  });
 });
 
 // =======================================================
-// MONGO + SERVER
+// GLOBAL ERROR HANDLER
+// =======================================================
+app.use((err, req, res, next) => {
+  console.error("❌ Server Error:", err.message);
+  res.status(500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
+  });
+});
+
+// =======================================================
+// DATABASE + SERVER START
 // =======================================================
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
@@ -138,11 +143,11 @@ const MONGO_URI = process.env.MONGO_URI;
 mongoose
   .connect(MONGO_URI)
   .then(() => {
-    console.log("✅ MongoDB connected successfully!");
-    app.listen(PORT, () =>
-      console.log(`🚀 Server running on PORT ${PORT} — Ready for Render ✔`)
-    );
+    console.log("✅ MongoDB connected successfully");
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on PORT ${PORT}`);
+    });
   })
   .catch((err) => {
-    console.log("❌ MongoDB connection error:", err.message);
+    console.error("❌ MongoDB connection failed:", err.message);
   });

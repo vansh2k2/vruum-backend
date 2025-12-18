@@ -7,7 +7,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 // =======================================================
-// ROUTE IMPORTS
+// ROUTE IMPORTS (ES MODULES - .js extension important)
 // =======================================================
 import adminRoutes from "./routes/adminRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
@@ -32,6 +32,9 @@ import aboutRoutes from "./routes/aboutRoutes.js";
 import serviceCategoryRoutes from "./routes/serviceCategoryRoutes.js";
 import subServiceRoutes from "./routes/subServiceRoutes.js";
 
+// ⭐ NEW — CORPORATE ROUTES
+import corporateRoutes from "./routes/corporateRoutes.js";
+
 // =======================================================
 // APP INIT
 // =======================================================
@@ -39,29 +42,54 @@ dotenv.config();
 const app = express();
 
 // =======================================================
-// CORS CONFIG (LOCAL + RENDER SAFE)
+// CORS CONFIG (LOCAL + RENDER SAFE) - UPDATED
 // =======================================================
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
+  "http://localhost:3103",
+  "https://localhost:3103",
   "https://vruum-cab.onrender.com",
   "https://vruum-cab-admin.onrender.com",
+  "https://vruum-backend.onrender.com",
 ];
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
+      // Allow requests with no origin (like mobile apps, curl, postman)
+      if (!origin) return callback(null, true);
+      
+      if (allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error("CORS not allowed"));
+        console.error("❌ CORS Blocked Origin:", origin);
+        callback(new Error(`CORS not allowed for origin: ${origin}`));
       }
     },
-    methods: ["GET", "POST", "PUT", "DELETE"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
   })
 );
+
+// =======================================================
+// BAOKEEK URL BLOCKER MIDDLEWARE
+// =======================================================
+app.use((req, res, next) => {
+  const referer = req.get('referer') || '';
+  const host = req.get('host') || '';
+  
+  if (referer.includes('baokeek.accentor.com') || host.includes('baokeek')) {
+    console.log('⚠️ Blocked baokeek request:', req.method, req.url);
+    return res.status(403).json({
+      success: false,
+      message: 'External domain access blocked'
+    });
+  }
+  
+  next();
+});
 
 // =======================================================
 // BODY PARSERS
@@ -88,6 +116,7 @@ app.get("/", (req, res) => {
 // AUTH / USERS
 app.use("/api/passengers", passengerAuthRoutes);
 app.use("/api/partners", partnerRoutes);
+app.use("/api/corporate", corporateRoutes); // ⭐ CORPORATE ROUTES ADDED HERE
 
 // CORE CONTENT
 app.use("/api/admin", adminRoutes);

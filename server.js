@@ -7,7 +7,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 
 // =======================================================
-// ROUTE IMPORTS (ES MODULES - .js extension important)
+// ROUTE IMPORTS (ES MODULES)
 // =======================================================
 import adminRoutes from "./routes/adminRoutes.js";
 import contactRoutes from "./routes/contactRoutes.js";
@@ -20,7 +20,21 @@ import galleryRoutes from "./routes/galleryRoutes.js";
 import supportRoutes from "./routes/supportRoutes.js";
 
 import passengerAuthRoutes from "./routes/passengerAuthRoutes.js";
+
+// ✅ PARTNER (WITH VEHICLE)
 import partnerRoutes from "./routes/partnerRoutes.js";
+
+// ✅ FLEET (MULTIPLE VEHICLES)
+import fleetRoutes from "./routes/fleetRoutes.js";
+
+// ✅ DRIVER / SARTHI (WITHOUT VEHICLE)
+import driverRoutes from "./routes/driverRoutes.js";
+
+// ✅ AMBULANCE
+import ambulanceRoutes from "./routes/ambulanceRoutes.js";
+
+// ✅ HEARSE VAN
+import hearseRoutes from "./routes/hearseRoutes.js";
 
 import offerRoutes from "./routes/offerRoutes.js";
 import carouselRoutes from "./routes/carouselRoutes.js";
@@ -28,11 +42,11 @@ import serviceRoutes from "./routes/serviceRoutes.js";
 import offerStripRoutes from "./routes/offerStripRoutes.js";
 import aboutRoutes from "./routes/aboutRoutes.js";
 
-// ⭐ NEW — SERVICES DROPDOWN BACKEND
+// SERVICES DROPDOWN
 import serviceCategoryRoutes from "./routes/serviceCategoryRoutes.js";
 import subServiceRoutes from "./routes/subServiceRoutes.js";
 
-// ⭐ NEW — CORPORATE ROUTES
+// CORPORATE
 import corporateRoutes from "./routes/corporateRoutes.js";
 
 // =======================================================
@@ -42,7 +56,7 @@ dotenv.config();
 const app = express();
 
 // =======================================================
-// CORS CONFIG (LOCAL + RENDER SAFE) - UPDATED
+// CORS CONFIG
 // =======================================================
 const allowedOrigins = [
   "http://localhost:5173",
@@ -58,37 +72,32 @@ const allowedOrigins = [
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow requests with no origin (like mobile apps, curl, postman)
       if (!origin) return callback(null, true);
-      
       if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.error("❌ CORS Blocked Origin:", origin);
-        callback(new Error(`CORS not allowed for origin: ${origin}`));
+        return callback(null, true);
       }
+      console.error("❌ CORS Blocked Origin:", origin);
+      return callback(new Error("CORS not allowed"));
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
 // =======================================================
-// BAOKEEK URL BLOCKER MIDDLEWARE
+// BLOCK UNWANTED DOMAIN
 // =======================================================
 app.use((req, res, next) => {
-  const referer = req.get('referer') || '';
-  const host = req.get('host') || '';
-  
-  if (referer.includes('baokeek.accentor.com') || host.includes('baokeek')) {
-    console.log('⚠️ Blocked baokeek request:', req.method, req.url);
+  const referer = req.get("referer") || "";
+  const host = req.get("host") || "";
+
+  if (referer.includes("baokeek") || host.includes("baokeek")) {
     return res.status(403).json({
       success: false,
-      message: 'External domain access blocked'
+      message: "External domain blocked",
     });
   }
-  
   next();
 });
 
@@ -104,22 +113,38 @@ app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 app.use("/uploads", express.static("uploads"));
 
 // =======================================================
-// ROOT HEALTH CHECK
+// HEALTH CHECK
 // =======================================================
 app.get("/", (req, res) => {
-  res.status(200).send("🚀 Vruum Backend Running Successfully ✔");
+  res.send("🚀 Vruum Backend Running Successfully ✔");
 });
 
 // =======================================================
 // API ROUTES
 // =======================================================
 
-// AUTH / USERS
+// PASSENGER
 app.use("/api/passengers", passengerAuthRoutes);
-app.use("/api/partners", partnerRoutes);
-app.use("/api/corporate", corporateRoutes); // ⭐ CORPORATE ROUTES ADDED HERE
 
-// CORE CONTENT
+// ✅ PARTNER
+app.use("/api/partners", partnerRoutes);
+
+// ✅ FLEET
+app.use("/api/fleet", fleetRoutes);
+
+// ✅ DRIVER / SARTHI
+app.use("/api/drivers", driverRoutes);
+
+// ✅ AMBULANCE
+app.use("/api/ambulance", ambulanceRoutes);
+
+// ✅ HEARSE VAN
+app.use("/api/hearse", hearseRoutes);
+
+// CORPORATE
+app.use("/api/corporate", corporateRoutes);
+
+// ADMIN & CMS
 app.use("/api/admin", adminRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/testimonials", testimonialRoutes);
@@ -131,15 +156,13 @@ app.use("/api/gallery", galleryRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/about", aboutRoutes);
 
-// OFFERS / UI
+// OFFERS & UI
 app.use("/api/offers", offerRoutes);
 app.use("/api/offer-strip", offerStripRoutes);
 app.use("/api/carousel", carouselRoutes);
 
-// EXISTING SERVICES
+// SERVICES
 app.use("/api/services", serviceRoutes);
-
-// ⭐ NEW — SERVICES DROPDOWN (ADMIN + FRONTEND)
 app.use("/api/service-categories", serviceCategoryRoutes);
 app.use("/api/sub-services", subServiceRoutes);
 
@@ -173,7 +196,7 @@ const MONGO_URI = process.env.MONGO_URI;
 mongoose
   .connect(MONGO_URI)
   .then(() => {
-    console.log("✅ MongoDB connected successfully");
+    console.log("✅ MongoDB connected");
     app.listen(PORT, () => {
       console.log(`🚀 Server running on PORT ${PORT}`);
     });

@@ -2,20 +2,21 @@ import express from "express";
 import multer from "multer";
 import {
   registerPartner,
+  loginPartner,
   getAllPartners,
   getPartnerById,
   deletePartner,
   approvePartner,
   rejectPartner,
-  loginPartner,   // ⭐ NEW IMPORT
 } from "../controllers/partnerController.js";
 
 const router = express.Router();
 
-// Multer setup for file uploads
+/* =========================
+   MULTER CONFIG
+========================= */
 const upload = multer({ dest: "uploads/" });
 
-// All uploadable fields
 const uploadFields = upload.fields([
   { name: "profilePhoto", maxCount: 1 },
   { name: "vehiclePicture", maxCount: 1 },
@@ -30,29 +31,29 @@ const uploadFields = upload.fields([
   { name: "insuranceCertificate", maxCount: 1 },
 ]);
 
-// =============================
-// ROUTES
-// =============================
+/* =========================
+   PARTNER ROUTES
+========================= */
 
-// Register partner
+// 🔹 Register Partner
 router.post("/register", uploadFields, registerPartner);
 
-// ⭐ NEW — LOGIN ROUTE
+// 🔹 Login Partner
 router.post("/login", loginPartner);
 
-// Get all partners (Admin)
-router.get("/", getAllPartners);
+// 🔹 Admin – get all partners
+router.get("/admin", getAllPartners);
 
-// Get single partner
-router.get("/:id", getPartnerById);
+// 🔹 Admin – get single partner
+router.get("/admin/:id", getPartnerById);
 
-// Delete partner
-router.delete("/:id", deletePartner);
+// 🔹 Admin – approve partner
+router.patch("/admin/:id/approve", approvePartner);
 
-// Approve partner
-router.put("/approve/:id", approvePartner);
+// 🔹 Admin – reject partner
+router.patch("/admin/:id/reject", rejectPartner);
 
-// Reject partner
-router.put("/reject/:id", rejectPartner);
+// 🔹 Admin – delete partner
+router.delete("/admin/:id", deletePartner);
 
 export default router;

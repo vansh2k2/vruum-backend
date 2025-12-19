@@ -1,63 +1,58 @@
 import mongoose from "mongoose";
 
-const partnerSchema = new mongoose.Schema(
+const hearseSchema = new mongoose.Schema(
   {
     // CATEGORY
     category: {
       type: String,
-      enum: ["partner", "driver", "fleet", "ambulance", "hearse"],
-      default: "partner",
+      default: "hearse",
+      enum: ["hearse"],
       required: true,
     },
 
-    // STEP 1: Personal Details
+    // ======================
+    // STEP 1: PERSONAL DETAILS
+    // ======================
     profilePhoto: String,
     fullName: { type: String, required: true },
     email: String,
-    phoneNumber: { type: String, required: true }, // unique index DB level pe manage karna better
+    phoneNumber: { type: String, required: true, unique: true },
     password: { type: String, required: true },
 
     emergencyNumber: String,
     whatsappNumber: String,
+
     addressLine1: { type: String, required: true },
     addressLine2: String,
     state: { type: String, required: true },
     district: { type: String, required: true },
     pincode: { type: String, required: true },
 
-    // STEP 2: Vehicle Details
-    applyFor: String,
-    vehicleType: String,
-    vehicleNumber: String,
-    vehicleMake: String,
-    vehicleModel: String,
-    vehicleColor: String,
-    availableSeats: String,
-    vehiclePicture: String,
-
-    // DRIVER ONLY
-    driverExperienceYears: String,
-    driverLicenseNumber: String,
-    driverPreferredCity: String,
-    driverShiftPreference: String,
-
-    // AMBULANCE ONLY
-    ambulanceServiceName: String,
-    ambulanceOwnerName: String,
-    ambulanceFeatures: String,
-
-    // HEARSE ONLY
-    hearseServiceName: String,
-    hearseOwnerName: String,
+    // ======================
+    // STEP 2: HEARSE DETAILS
+    // ======================
+    hearseServiceName: { type: String, required: true },
+    hearseOwnerName: { type: String, required: true },
     hearseFeatures: String,
 
-    // STEP 3: Emergency Contacts
+    vehicleNumber: { type: String, required: true },
+    vehicleMake: { type: String, required: true },
+    vehicleModel: { type: String, required: true },
+    vehicleColor: { type: String, required: true },
+    availableSeats: { type: String, required: true },
+    vehiclePicture: String,
+
+    // ======================
+    // STEP 3: EMERGENCY CONTACTS
+    // ======================
     emergencyContact1: { type: String, required: true },
     emergencyRelation1: { type: String, required: true },
     emergencyContact2: String,
     emergencyRelation2: String,
 
-    // STEP 4: Documents
+    // ======================
+    // STEP 4: DOCUMENTS
+    // ======================
     aadharFront: String,
     aadharBack: String,
     dlFront: String,
@@ -68,21 +63,22 @@ const partnerSchema = new mongoose.Schema(
     pollutionCertificate: String,
     insuranceCertificate: String,
 
-    // ADMIN / AUTH
+    // ======================
+    // ADMIN CONTROL
+    // ======================
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
-    isApproved: {
-      type: Boolean,
-      default: false,
-    },
     adminNotes: String,
 
-    role: { type: String, default: "partner" },
+    role: {
+      type: String,
+      default: "hearse",
+    },
   },
   { timestamps: true }
 );
 
-export default mongoose.model("Partner", partnerSchema);
+export default mongoose.model("Hearse", hearseSchema);

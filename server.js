@@ -81,8 +81,7 @@ app.use(
   })
 );
 
-// 🔥 VERY IMPORTANT – preflight fix
-app.options("*", cors());
+
 
 // =======================================================
 // BLOCK UNWANTED DOMAIN

@@ -21,28 +21,21 @@ import supportRoutes from "./routes/supportRoutes.js";
 
 import passengerAuthRoutes from "./routes/passengerAuthRoutes.js";
 
-// ✅ PARTNER (WITH VEHICLE)
+// PARTNERS / VEHICLES
 import partnerRoutes from "./routes/partnerRoutes.js";
-
-// ✅ FLEET (MULTIPLE VEHICLES)
 import fleetRoutes from "./routes/fleetRoutes.js";
-
-// ✅ DRIVER / SARTHI (WITHOUT VEHICLE)
 import driverRoutes from "./routes/driverRoutes.js";
-
-// ✅ AMBULANCE
 import ambulanceRoutes from "./routes/ambulanceRoutes.js";
-
-// ✅ HEARSE VAN
 import hearseRoutes from "./routes/hearseRoutes.js";
 
+// UI / CMS
 import offerRoutes from "./routes/offerRoutes.js";
 import carouselRoutes from "./routes/carouselRoutes.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
 import offerStripRoutes from "./routes/offerStripRoutes.js";
 import aboutRoutes from "./routes/aboutRoutes.js";
 
-// SERVICES DROPDOWN
+// SERVICES
 import serviceCategoryRoutes from "./routes/serviceCategoryRoutes.js";
 import subServiceRoutes from "./routes/subServiceRoutes.js";
 
@@ -56,7 +49,7 @@ dotenv.config();
 const app = express();
 
 // =======================================================
-// CORS CONFIG
+// ✅ SAFE CORS CONFIG (FIXED)
 // =======================================================
 const allowedOrigins = [
   "http://localhost:5173",
@@ -65,25 +58,31 @@ const allowedOrigins = [
   "https://localhost:3103",
   "https://vruum-cab.onrender.com",
   "https://vruum-cab-admin.onrender.com",
-  "https://vruum-backend.onrender.com",
   "https://vanshvruum19dec.netlify.app",
 ];
 
+// 🔥 MAIN CORS
 app.use(
   cors({
-    origin: (origin, callback) => {
+    origin: function (origin, callback) {
+      // allow server-to-server & tools
       if (!origin) return callback(null, true);
+
       if (allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
-      console.error("❌ CORS Blocked Origin:", origin);
-      return callback(new Error("CORS not allowed"));
+
+      console.log("❌ CORS blocked:", origin);
+      return callback(null, false); // ❗ error throw nahi karna
     },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+// 🔥 VERY IMPORTANT – preflight fix
+app.options("*", cors());
 
 // =======================================================
 // BLOCK UNWANTED DOMAIN
@@ -122,29 +121,15 @@ app.get("/", (req, res) => {
 // =======================================================
 // API ROUTES
 // =======================================================
-
-// PASSENGER
 app.use("/api/passengers", passengerAuthRoutes);
-
-// ✅ PARTNER
 app.use("/api/partners", partnerRoutes);
-
-// ✅ FLEET
 app.use("/api/fleet", fleetRoutes);
-
-// ✅ DRIVER / SARTHI
 app.use("/api/drivers", driverRoutes);
-
-// ✅ AMBULANCE
 app.use("/api/ambulance", ambulanceRoutes);
-
-// ✅ HEARSE VAN
 app.use("/api/hearse", hearseRoutes);
-
-// CORPORATE
 app.use("/api/corporate", corporateRoutes);
 
-// ADMIN & CMS
+// ADMIN / CMS
 app.use("/api/admin", adminRoutes);
 app.use("/api/contacts", contactRoutes);
 app.use("/api/testimonials", testimonialRoutes);
@@ -156,7 +141,7 @@ app.use("/api/gallery", galleryRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/about", aboutRoutes);
 
-// OFFERS & UI
+// OFFERS / UI
 app.use("/api/offers", offerRoutes);
 app.use("/api/offer-strip", offerStripRoutes);
 app.use("/api/carousel", carouselRoutes);

@@ -52,6 +52,7 @@ const allowedOrigins = [
   "https://vruum-cab.onrender.com",
   "https://vruum-cab-admin.onrender.com",
   "https://vruum-backend.onrender.com",
+  "https://vanshvruum19dec.netlify.app",
 ];
 
 app.use(

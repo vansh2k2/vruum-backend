@@ -1,4 +1,4 @@
-import Hearse from "../models/Hearse.js";
+import Partner from "../models/Partner.js";  // ✅ CORRECT
 import cloudinary from "../config/cloudinary.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -20,19 +20,32 @@ const uploadToCloudinary = async (file) => {
 // =============================
 export const registerHearse = async (req, res) => {
   try {
-    let data = {
+    const data = {
       ...req.body,
-      category: "hearse",
+      category: "hearse",      // ✅ Set category
+      role: "hearse",          // ✅ Set role
+      status: "pending",
     };
 
-    if (!data.password) {
+    // ✅ Validation
+    if (!data.password || !data.phoneNumber || !data.fullName) {
       return res.status(400).json({
         success: false,
-        message: "Password is required",
+        message: "Required fields missing (fullName, phoneNumber, password)",
       });
     }
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    // ✅ Check duplicate phone number
+    const exists = await Partner.findOne({ phoneNumber: data.phoneNumber });
+    if (exists) {
+      return res.status(409).json({
+        success: false,
+        message: "Phone number already registered",
+      });
+    }
+
+    // Hash password
+    data.password = await bcrypt.hash(data.password, 10);
 
     const files = req.files;
     const uploadedFiles = {};
@@ -58,20 +71,19 @@ export const registerHearse = async (req, res) => {
       }
     }
 
-    const hearse = await Hearse.create({
+    // ✅ Use Partner model
+    const hearse = await Partner.create({
       ...data,
       ...uploadedFiles,
-      password: hashedPassword,
-      status: "pending",
     });
 
     return res.status(201).json({
       success: true,
-      message: "Hearse registration successful. Pending admin approval.",
+      message: "Hearse registration successful. Your profile will be verified within 24-48 hours.",
       hearse,
     });
   } catch (error) {
-    console.error("Hearse Register Error:", error);
+    console.error("HEARSE REGISTER ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Server error during hearse registration",
@@ -86,9 +98,21 @@ export const loginHearse = async (req, res) => {
   try {
     const { phoneNumber, password } = req.body;
 
-    const hearse = await Hearse.findOne({ phoneNumber });
-    if (!hearse) {
+    if (!phoneNumber || !password) {
       return res.status(400).json({
+        success: false,
+        message: "Phone number and password required",
+      });
+    }
+
+    // ✅ Filter by category
+    const hearse = await Partner.findOne({ 
+      phoneNumber,
+      category: "hearse" 
+    });
+
+    if (!hearse) {
+      return res.status(401).json({
         success: false,
         message: "Invalid credentials",
       });
@@ -96,7 +120,7 @@ export const loginHearse = async (req, res) => {
 
     const isMatch = await bcrypt.compare(password, hearse.password);
     if (!isMatch) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
         message: "Invalid credentials",
       });
@@ -107,7 +131,7 @@ export const loginHearse = async (req, res) => {
         success: false,
         message:
           hearse.status === "pending"
-            ? "Your profile is pending approval"
+            ? "Your profile is under verification"
             : "Your profile has been rejected",
       });
     }
@@ -125,7 +149,7 @@ export const loginHearse = async (req, res) => {
       token,
     });
   } catch (error) {
-    console.error("Hearse Login Error:", error);
+    console.error("HEARSE LOGIN ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Server error during login",
@@ -138,10 +162,44 @@ export const loginHearse = async (req, res) => {
 // =============================
 export const getAllHearse = async (req, res) => {
   try {
-    const list = await Hearse.find().sort({ createdAt: -1 });
-    res.json({ success: true, hearse: list });
+    // ✅ Filter by category
+    const list = await Partner.find({ category: "hearse" })
+      .sort({ createdAt: -1 });
+    
+    res.json({ success: true, data: list });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Failed to fetch hearse" });
+    console.error("GET HEARSE ERROR:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to fetch hearse" 
+    });
+  }
+};
+
+// =============================
+// ADMIN: GET SINGLE HEARSE
+// =============================
+export const getHearseById = async (req, res) => {
+  try {
+    const hearse = await Partner.findById(req.params.id);
+
+    if (!hearse) {
+      return res.status(404).json({
+        success: false,
+        message: "Hearse not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      hearse,
+    });
+  } catch (error) {
+    console.error("GET HEARSE BY ID ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch hearse",
+    });
   }
 };
 
@@ -149,19 +207,78 @@ export const getAllHearse = async (req, res) => {
 // ADMIN: APPROVE / REJECT
 // =============================
 export const approveHearse = async (req, res) => {
-  const hearse = await Hearse.findByIdAndUpdate(
-    req.params.id,
-    { status: "approved" },
-    { new: true }
-  );
-  res.json({ success: true, hearse });
+  try {
+    const hearse = await Partner.findByIdAndUpdate(
+      req.params.id,
+      { status: "approved" },
+      { new: true }
+    );
+
+    if (!hearse) {
+      return res.status(404).json({
+        success: false,
+        message: "Hearse not found"
+      });
+    }
+
+    res.json({ success: true, hearse });
+  } catch (error) {
+    console.error("APPROVE HEARSE ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: "Approval failed"
+    });
+  }
 };
 
 export const rejectHearse = async (req, res) => {
-  const hearse = await Hearse.findByIdAndUpdate(
-    req.params.id,
-    { status: "rejected" },
-    { new: true }
-  );
-  res.json({ success: true, hearse });
+  try {
+    const hearse = await Partner.findByIdAndUpdate(
+      req.params.id,
+      { status: "rejected" },
+      { new: true }
+    );
+
+    if (!hearse) {
+      return res.status(404).json({
+        success: false,
+        message: "Hearse not found"
+      });
+    }
+
+    res.json({ success: true, hearse });
+  } catch (error) {
+    console.error("REJECT HEARSE ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: "Rejection failed"
+    });
+  }
+};
+
+// =============================
+// ADMIN: DELETE HEARSE
+// =============================
+export const deleteHearse = async (req, res) => {
+  try {
+    const deleted = await Partner.findByIdAndDelete(req.params.id);
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: "Hearse not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Hearse deleted successfully",
+    });
+  } catch (error) {
+    console.error("DELETE HEARSE ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Delete failed",
+    });
+  }
 };

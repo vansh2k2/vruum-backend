@@ -1,4 +1,4 @@
-import Fleet from "../models/Fleet.js";
+import Partner from "../models/Partner.js";  // ✅ CORRECT
 import cloudinary from "../config/cloudinary.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -23,28 +23,34 @@ const uploadToCloudinary = async (file, folder = "fleet") => {
 // =======================================================
 export const registerFleet = async (req, res) => {
   try {
-    let data = {
+    const data = {
       ...req.body,
-      category: "fleet",
+      category: "fleet",      // ✅ Set category
+      role: "fleet",          // ✅ Set role
+      status: "pending",
     };
 
     const files = req.files;
 
-    if (!data.password) {
+    // ✅ Validation
+    if (!data.password || !data.phoneNumber || !data.fullName) {
       return res.status(400).json({
         success: false,
-        message: "Password is required",
+        message: "Required fields missing (fullName, phoneNumber, password)",
       });
     }
 
-    if (!data.phoneNumber) {
-      return res.status(400).json({
+    // ✅ Check duplicate phone number
+    const exists = await Partner.findOne({ phoneNumber: data.phoneNumber });
+    if (exists) {
+      return res.status(409).json({
         success: false,
-        message: "Phone number is required",
+        message: "Phone number already registered",
       });
     }
 
-    const hashedPassword = await bcrypt.hash(data.password, 10);
+    // Hash password
+    data.password = await bcrypt.hash(data.password, 10);
 
     const uploadedFiles = {};
 
@@ -97,21 +103,20 @@ export const registerFleet = async (req, res) => {
       }
     }
 
-    const newFleet = await Fleet.create({
+    // ✅ Use Partner model
+    const newFleet = await Partner.create({
       ...data,
       ...uploadedFiles,
       fleetVehicles,
-      password: hashedPassword,
-      status: "pending",
     });
 
     return res.status(201).json({
       success: true,
-      message: "Fleet registration successful. Pending admin approval.",
+      message: "Fleet registration successful. Your profile will be verified within 24-48 hours.",
       fleet: newFleet,
     });
   } catch (error) {
-    console.error("Fleet Register Error:", error);
+    console.error("FLEET REGISTER ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Server error during fleet registration",
@@ -126,14 +131,32 @@ export const loginFleet = async (req, res) => {
   try {
     const { phoneNumber, password } = req.body;
 
-    const fleet = await Fleet.findOne({ phoneNumber });
+    if (!phoneNumber || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Phone number and password required",
+      });
+    }
+
+    // ✅ Filter by category
+    const fleet = await Partner.findOne({ 
+      phoneNumber,
+      category: "fleet" 
+    });
+
     if (!fleet) {
-      return res.status(400).json({ success: false, message: "Invalid credentials" });
+      return res.status(401).json({ 
+        success: false, 
+        message: "Invalid credentials" 
+      });
     }
 
     const isMatch = await bcrypt.compare(password, fleet.password);
     if (!isMatch) {
-      return res.status(400).json({ success: false, message: "Invalid credentials" });
+      return res.status(401).json({ 
+        success: false, 
+        message: "Invalid credentials" 
+      });
     }
 
     if (fleet.status !== "approved") {
@@ -141,7 +164,7 @@ export const loginFleet = async (req, res) => {
         success: false,
         message:
           fleet.status === "pending"
-            ? "Your fleet account is pending approval"
+            ? "Your fleet account is under verification"
             : "Your fleet account has been rejected",
       });
     }
@@ -154,7 +177,11 @@ export const loginFleet = async (req, res) => {
 
     return res.json({ success: true, fleet, token });
   } catch (error) {
-    return res.status(500).json({ success: false, message: "Login error" });
+    console.error("FLEET LOGIN ERROR:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Login error" 
+    });
   }
 };
 
@@ -163,19 +190,26 @@ export const loginFleet = async (req, res) => {
 // =======================================================
 export const getAllFleets = async (req, res) => {
   try {
-    const fleets = await Fleet.find().sort({ createdAt: -1 });
-    res.json({ success: true, fleets });
-  } catch {
-    res.status(500).json({ success: false });
+    // ✅ Filter by category
+    const fleets = await Partner.find({ category: "fleet" })
+      .sort({ createdAt: -1 });
+    
+    res.json({ success: true, data: fleets });
+  } catch (error) {
+    console.error("GET FLEETS ERROR:", error);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to fetch fleets"
+    });
   }
 };
 
 // =======================================================
-// ✅ GET SINGLE FLEET BY ID (FIXED)
+// GET SINGLE FLEET BY ID
 // =======================================================
 export const getFleetById = async (req, res) => {
   try {
-    const fleet = await Fleet.findById(req.params.id);
+    const fleet = await Partner.findById(req.params.id);
 
     if (!fleet) {
       return res.status(404).json({
@@ -189,7 +223,7 @@ export const getFleetById = async (req, res) => {
       fleet,
     });
   } catch (error) {
-    console.error("Get Fleet By ID Error:", error);
+    console.error("GET FLEET BY ID ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch fleet",
@@ -201,16 +235,75 @@ export const getFleetById = async (req, res) => {
 // APPROVE / REJECT / DELETE
 // =======================================================
 export const approveFleet = async (req, res) => {
-  const fleet = await Fleet.findByIdAndUpdate(req.params.id, { status: "approved" }, { new: true });
-  res.json({ success: true, fleet });
+  try {
+    const fleet = await Partner.findByIdAndUpdate(
+      req.params.id,
+      { status: "approved" },
+      { new: true }
+    );
+
+    if (!fleet) {
+      return res.status(404).json({
+        success: false,
+        message: "Fleet not found"
+      });
+    }
+
+    res.json({ success: true, fleet });
+  } catch (error) {
+    console.error("APPROVE FLEET ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: "Approval failed"
+    });
+  }
 };
 
 export const rejectFleet = async (req, res) => {
-  const fleet = await Fleet.findByIdAndUpdate(req.params.id, { status: "rejected" }, { new: true });
-  res.json({ success: true, fleet });
+  try {
+    const fleet = await Partner.findByIdAndUpdate(
+      req.params.id,
+      { status: "rejected" },
+      { new: true }
+    );
+
+    if (!fleet) {
+      return res.status(404).json({
+        success: false,
+        message: "Fleet not found"
+      });
+    }
+
+    res.json({ success: true, fleet });
+  } catch (error) {
+    console.error("REJECT FLEET ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: "Rejection failed"
+    });
+  }
 };
 
 export const deleteFleet = async (req, res) => {
-  await Fleet.findByIdAndDelete(req.params.id);
-  res.json({ success: true });
+  try {
+    const deleted = await Partner.findByIdAndDelete(req.params.id);
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: "Fleet not found"
+      });
+    }
+
+    res.json({ 
+      success: true,
+      message: "Fleet deleted successfully"
+    });
+  } catch (error) {
+    console.error("DELETE FLEET ERROR:", error);
+    res.status(500).json({
+      success: false,
+      message: "Delete failed"
+    });
+  }
 };

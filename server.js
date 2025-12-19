@@ -5,7 +5,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
-
+import dns from "dns";
 // =======================================================
 // ROUTE IMPORTS (ES MODULES)
 // =======================================================
@@ -175,16 +175,37 @@ app.use((err, req, res, next) => {
 // DATABASE + SERVER START
 // =======================================================
 const PORT = process.env.PORT || 5000;
-const MONGO_URI = process.env.MONGO_URI;
+const uri = process.env.MONGO_URI; // keep secret
 
-mongoose
-  .connect(MONGO_URI)
-  .then(() => {
-    console.log("✅ MongoDB connected");
-    app.listen(PORT, () => {
-      console.log(`🚀 Server running on PORT ${PORT}`);
-    });
-  })
-  .catch((err) => {
-    console.error("❌ MongoDB connection failed:", err.message);
-  });
+dns.setServers(['8.8.8.8', '1.1.1.1']); // optional workaround
+
+async function connectWithRetry(retries = 6, baseDelay = 2000) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      await mongoose.connect(uri, {
+        // do not pass useNewUrlParser/useUnifiedTopology to driver v4
+        serverSelectionTimeoutMS: 5000
+      });
+      console.log('✅ MongoDB connected');
+      return;
+    } catch (err) {
+      console.error(new Date().toISOString(), 'MongoDB connection failed:', err.message);
+      console.error(err.stack);
+      if (i === retries - 1) {
+        console.error('Exceeded retries — keeping process alive to avoid tight nodemon restart loop');
+        // do NOT call process.exit(1) here if you want to avoid nodemon tight restart loops;
+        // instead wait and retry indefinitely or let a supervisor handle restarts.
+        await new Promise(r => setTimeout(r, 60000));
+        i = -1; // restart retry loop after waiting (optional)
+      } else {
+        const wait = baseDelay * Math.pow(2, i);
+        console.log(`Retrying in ${wait}ms (${i + 1}/${retries})`);
+        await new Promise(r => setTimeout(r, wait));
+      }
+    }
+  }
+}
+
+connectWithRetry().catch(e => {
+  console.error('Final connection failure', e);
+});

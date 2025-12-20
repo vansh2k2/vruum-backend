@@ -60,6 +60,8 @@ const allowedOrigins = [
   "https://vruum-cab-admin.onrender.com",
   "https://vanshvruum19dec.netlify.app",
   "https://b6a4caf4-a474-4af4-80cd-84c15e91f7ca-00-2wpm2a3swjih3.sisko.replit.dev/",
+  "https://vruum-backend-vanshnamogange.replit.app",
+
 ];
 
 // 🔥 MAIN CORS

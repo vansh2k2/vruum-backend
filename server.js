@@ -59,9 +59,7 @@ const allowedOrigins = [
   "https://vruum-cab.onrender.com",
   "https://vruum-cab-admin.onrender.com",
   "https://vanshvruum19dec.netlify.app",
-  "https://b6a4caf4-a474-4af4-80cd-84c15e91f7ca-00-2wpm2a3swjih3.sisko.replit.dev/",
-  "https://vruum-backend-vanshnamogange.replit.app",
-
+  "https://b6a4caf4-a474-4af4-80cd-84c15e91f7ca-00-2wpm2a3swjih3.sisko.replit.dev",
 ];
 
 // 🔥 MAIN CORS
@@ -84,9 +82,6 @@ app.use(
 );
 
 app.options("*", cors());
-
-
-
 
 // =======================================================
 // BLOCK UNWANTED DOMAIN
@@ -180,28 +175,30 @@ app.use((err, req, res, next) => {
 // DATABASE + SERVER START
 // =======================================================
 const PORT = process.env.PORT || 5000;
-const uri = process.env.MONGO_URI; // keep secret
+const uri = process.env.MONGO_URI;
 
-dns.setServers(['8.8.8.8', '1.1.1.1']); // optional workaround
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 async function connectWithRetry(retries = 6, baseDelay = 2000) {
   for (let i = 0; i < retries; i++) {
     try {
       await mongoose.connect(uri, {
-        // do not pass useNewUrlParser/useUnifiedTopology to driver v4
         serverSelectionTimeoutMS: 5000
       });
       console.log('✅ MongoDB connected');
+      
+      // Start server after successful DB connection
+      app.listen(PORT, () => {
+        console.log(`🚀 Server running on port ${PORT}`);
+      });
       return;
     } catch (err) {
       console.error(new Date().toISOString(), 'MongoDB connection failed:', err.message);
       console.error(err.stack);
       if (i === retries - 1) {
         console.error('Exceeded retries — keeping process alive to avoid tight nodemon restart loop');
-        // do NOT call process.exit(1) here if you want to avoid nodemon tight restart loops;
-        // instead wait and retry indefinitely or let a supervisor handle restarts.
         await new Promise(r => setTimeout(r, 60000));
-        i = -1; // restart retry loop after waiting (optional)
+        i = -1;
       } else {
         const wait = baseDelay * Math.pow(2, i);
         console.log(`Retrying in ${wait}ms (${i + 1}/${retries})`);

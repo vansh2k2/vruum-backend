@@ -49,7 +49,7 @@ dotenv.config();
 const app = express();
 
 // =======================================================
-// ✅ SAFE CORS CONFIG (FIXED)
+// ✅ CORS CONFIG (FIXED - NO app.options)
 // =======================================================
 const allowedOrigins = [
   "http://localhost:5173",
@@ -59,29 +59,30 @@ const allowedOrigins = [
   "https://vruum-cab.onrender.com",
   "https://vruum-cab-admin.onrender.com",
   "https://vanshvruum19dec.netlify.app",
-  "https://b6a4caf4-a474-4af4-80cd-84c15e91f7ca-00-2wpm2a3swjih3.sisko.replit.dev",
+  "https://vruum-backend--vanshnamogange.replit.app",
 ];
 
-// 🔥 MAIN CORS
-app.use(
-  cors({
-    origin: function (origin, callback) {
-      if (!origin) return callback(null, true);
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
 
-      console.log("❌ CORS blocked:", origin);
-      return callback(null, false);
-    },
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
-  })
-);
+    console.log("❌ CORS blocked:", origin);
+    return callback(null, false);
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+  preflightContinue: false,
+  optionsSuccessStatus: 204
+};
 
-app.options("*", cors());
+// Apply CORS middleware - this handles OPTIONS automatically
+app.use(cors(corsOptions));
 
 // =======================================================
 // BLOCK UNWANTED DOMAIN

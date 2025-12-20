@@ -49,7 +49,7 @@ dotenv.config();
 const app = express();
 
 // =======================================================
-// ✅ CORS CONFIG (FIXED - NO app.options)
+// ✅ CORS CONFIG (FINAL FIX)
 // =======================================================
 const allowedOrigins = [
   "http://localhost:5173",
@@ -81,8 +81,28 @@ const corsOptions = {
   optionsSuccessStatus: 204
 };
 
-// Apply CORS middleware - this handles OPTIONS automatically
+// Apply CORS middleware
 app.use(cors(corsOptions));
+
+// ✅ EXTRA PREFLIGHT HANDLER (Important for Replit/PATCH requests)
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  
+  // Set CORS headers for allowed origins
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header('Access-Control-Allow-Origin', origin);
+    res.header('Access-Control-Allow-Credentials', 'true');
+  }
+  
+  // Handle preflight OPTIONS requests
+  if (req.method === 'OPTIONS') {
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    return res.status(200).json({});
+  }
+  
+  next();
+});
 
 // =======================================================
 // BLOCK UNWANTED DOMAIN

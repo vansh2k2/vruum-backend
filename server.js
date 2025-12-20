@@ -59,13 +59,13 @@ const allowedOrigins = [
   "https://vruum-cab.onrender.com",
   "https://vruum-cab-admin.onrender.com",
   "https://vanshvruum19dec.netlify.app",
+  "https://b6a4caf4-a474-4af4-80cd-84c15e91f7ca-00-2wpm2a3swjih3.sisko.replit.dev/",
 ];
 
 // 🔥 MAIN CORS
 app.use(
   cors({
     origin: function (origin, callback) {
-      // allow server-to-server & tools
       if (!origin) return callback(null, true);
 
       if (allowedOrigins.includes(origin)) {
@@ -73,13 +73,16 @@ app.use(
       }
 
       console.log("❌ CORS blocked:", origin);
-      return callback(null, false); // ❗ error throw nahi karna
+      return callback(null, false);
     },
     credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
+
+app.options("*", cors());
+
 
 
 

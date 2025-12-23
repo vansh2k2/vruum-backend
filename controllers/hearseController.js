@@ -1,42 +1,51 @@
-import Partner from "../models/Partner.js";  // ✅ CORRECT
+import Hearse from "../models/Hearse.js";
 import cloudinary from "../config/cloudinary.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-const uploadToCloudinary = async (file) => {
-  try {
-    const uploaded = await cloudinary.uploader.upload(file.path, {
-      folder: "hearse",
-    });
-    return uploaded.secure_url;
-  } catch (error) {
-    console.error("Cloudinary Error:", error);
-    return null;
-  }
+/* =====================================================
+   CLOUDINARY UPLOAD HELPER
+===================================================== */
+const uploadToCloudinary = async (file, folder = "hearse") => {
+  if (!file) return "";
+  const result = await cloudinary.uploader.upload(file.path, {
+    folder,
+  });
+  return result.secure_url;
 };
 
-// =============================
-// REGISTER HEARSE
-// =============================
+/* =====================================================
+   REGISTER HEARSE SERVICE
+===================================================== */
 export const registerHearse = async (req, res) => {
   try {
     const data = {
       ...req.body,
-      category: "hearse",      // ✅ Set category
-      role: "hearse",          // ✅ Set role
-      status: "pending",
+      category: "hearse",
+      role: "hearse",
+      status: "pending",            // admin verification
+      isApproved: false,            // 🔥 IMPORTANT
+      availabilityStatus: "available", // working state
     };
 
-    // ✅ Validation
-    if (!data.password || !data.phoneNumber || !data.fullName) {
+    /* ---------- REQUIRED FIELDS ---------- */
+    if (
+      !data.phoneNumber ||
+      !data.password ||
+      !data.fullName ||
+      !data.vehicleNumber
+    ) {
       return res.status(400).json({
         success: false,
-        message: "Required fields missing (fullName, phoneNumber, password)",
+        message: "Required fields missing",
       });
     }
 
-    // ✅ Check duplicate phone number
-    const exists = await Partner.findOne({ phoneNumber: data.phoneNumber });
+    /* ---------- DUPLICATE CHECK ---------- */
+    const exists = await Hearse.findOne({
+      phoneNumber: data.phoneNumber,
+    });
+
     if (exists) {
       return res.status(409).json({
         success: false,
@@ -44,13 +53,12 @@ export const registerHearse = async (req, res) => {
       });
     }
 
-    // Hash password
+    /* ---------- HASH PASSWORD ---------- */
     data.password = await bcrypt.hash(data.password, 10);
 
-    const files = req.files;
-    const uploadedFiles = {};
-
-    const uploadFields = [
+    /* ---------- FILE UPLOADS ---------- */
+    const files = req.files || {};
+    const uploadMap = [
       "profilePhoto",
       "vehiclePicture",
       "aadharFront",
@@ -64,22 +72,21 @@ export const registerHearse = async (req, res) => {
       "insuranceCertificate",
     ];
 
-    for (const field of uploadFields) {
-      if (files && files[field]) {
-        const url = await uploadToCloudinary(files[field][0]);
-        uploadedFiles[field] = url;
+    for (const field of uploadMap) {
+      if (files[field]?.[0]) {
+        data[field] = await uploadToCloudinary(
+          files[field][0],
+          "hearse"
+        );
       }
     }
 
-    // ✅ Use Partner model
-    const hearse = await Partner.create({
-      ...data,
-      ...uploadedFiles,
-    });
+    const hearse = await Hearse.create(data);
 
     return res.status(201).json({
       success: true,
-      message: "Hearse registration successful. Your profile will be verified within 24-48 hours.",
+      message:
+        "Hearse registration submitted successfully. Verification pending.",
       hearse,
     });
   } catch (error) {
@@ -91,9 +98,9 @@ export const registerHearse = async (req, res) => {
   }
 };
 
-// =============================
-// LOGIN HEARSE
-// =============================
+/* =====================================================
+   LOGIN HEARSE (ADMIN APPROVAL REQUIRED)
+===================================================== */
 export const loginHearse = async (req, res) => {
   try {
     const { phoneNumber, password } = req.body;
@@ -105,12 +112,7 @@ export const loginHearse = async (req, res) => {
       });
     }
 
-    // ✅ Filter by category
-    const hearse = await Partner.findOne({ 
-      phoneNumber,
-      category: "hearse" 
-    });
-
+    const hearse = await Hearse.findOne({ phoneNumber });
     if (!hearse) {
       return res.status(401).json({
         success: false,
@@ -118,7 +120,11 @@ export const loginHearse = async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, hearse.password);
+    const isMatch = await bcrypt.compare(
+      password,
+      hearse.password
+    );
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -126,18 +132,20 @@ export const loginHearse = async (req, res) => {
       });
     }
 
-    if (hearse.status !== "approved") {
+    if (!hearse.isApproved) {
       return res.status(403).json({
         success: false,
         message:
-          hearse.status === "pending"
-            ? "Your profile is under verification"
-            : "Your profile has been rejected",
+          "Your hearse service is under verification. Our team will contact you within 24 hours.",
       });
     }
 
     const token = jwt.sign(
-      { id: hearse._id, role: "hearse" },
+      {
+        id: hearse._id,
+        role: "hearse",
+        status: hearse.status,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -145,8 +153,8 @@ export const loginHearse = async (req, res) => {
     return res.json({
       success: true,
       message: "Login successful",
-      hearse,
       token,
+      hearse,
     });
   } catch (error) {
     console.error("HEARSE LOGIN ERROR:", error);
@@ -157,32 +165,34 @@ export const loginHearse = async (req, res) => {
   }
 };
 
-// =============================
-// ADMIN: GET ALL HEARSE
-// =============================
-export const getAllHearse = async (req, res) => {
+/* =====================================================
+   ADMIN – GET ALL HEARSES
+===================================================== */
+export const getAllHearses = async (req, res) => {
   try {
-    // ✅ Filter by category
-    const list = await Partner.find({ category: "hearse" })
-      .sort({ createdAt: -1 });
-    
-    res.json({ success: true, data: list });
+    const hearses = await Hearse.find({
+      role: "hearse",
+    }).sort({ createdAt: -1 });
+
+    return res.json({
+      success: true,
+      data: hearses,
+    });
   } catch (error) {
-    console.error("GET HEARSE ERROR:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "Failed to fetch hearse" 
+    console.error("GET HEARSES ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch hearses",
     });
   }
 };
 
-// =============================
-// ADMIN: GET SINGLE HEARSE
-// =============================
+/* =====================================================
+   ADMIN – GET SINGLE HEARSE
+===================================================== */
 export const getHearseById = async (req, res) => {
   try {
-    const hearse = await Partner.findById(req.params.id);
-
+    const hearse = await Hearse.findById(req.params.id);
     if (!hearse) {
       return res.status(404).json({
         success: false,
@@ -195,7 +205,7 @@ export const getHearseById = async (req, res) => {
       hearse,
     });
   } catch (error) {
-    console.error("GET HEARSE BY ID ERROR:", error);
+    console.error("GET HEARSE ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch hearse",
@@ -203,65 +213,130 @@ export const getHearseById = async (req, res) => {
   }
 };
 
-// =============================
-// ADMIN: APPROVE / REJECT
-// =============================
+/* =====================================================
+   ADMIN – APPROVE HEARSE
+===================================================== */
 export const approveHearse = async (req, res) => {
   try {
-    const hearse = await Partner.findByIdAndUpdate(
+    const hearse = await Hearse.findByIdAndUpdate(
       req.params.id,
-      { status: "approved" },
+      {
+        status: "approved",
+        isApproved: true,
+      },
       { new: true }
     );
 
     if (!hearse) {
       return res.status(404).json({
         success: false,
-        message: "Hearse not found"
+        message: "Hearse not found",
       });
     }
 
-    res.json({ success: true, hearse });
+    return res.json({
+      success: true,
+      message: "Hearse service approved successfully",
+      hearse,
+    });
   } catch (error) {
     console.error("APPROVE HEARSE ERROR:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Approval failed"
+      message: "Approval failed",
     });
   }
 };
 
+/* =====================================================
+   ADMIN – REJECT HEARSE
+===================================================== */
 export const rejectHearse = async (req, res) => {
   try {
-    const hearse = await Partner.findByIdAndUpdate(
+    const hearse = await Hearse.findByIdAndUpdate(
       req.params.id,
-      { status: "rejected" },
+      {
+        status: "rejected",
+        isApproved: false,
+      },
       { new: true }
     );
 
     if (!hearse) {
       return res.status(404).json({
         success: false,
-        message: "Hearse not found"
+        message: "Hearse not found",
       });
     }
 
-    res.json({ success: true, hearse });
+    return res.json({
+      success: true,
+      message: "Hearse service rejected",
+      hearse,
+    });
   } catch (error) {
     console.error("REJECT HEARSE ERROR:", error);
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
-      message: "Rejection failed"
+      message: "Rejection failed",
     });
   }
 };
 
-// =============================
-// ADMIN: DELETE HEARSE
-// =============================
+/* =====================================================
+   UPDATE HEARSE AVAILABILITY
+===================================================== */
+export const updateHearseStatus = async (req, res) => {
+  try {
+    const { availabilityStatus } = req.body;
+    const validStatuses = ["on-duty", "available"];
+
+    if (!validStatuses.includes(availabilityStatus)) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Invalid status. Use 'on-duty' or 'available'",
+      });
+    }
+
+    const hearse = await Hearse.findByIdAndUpdate(
+      req.params.id,
+      { availabilityStatus },
+      { new: true }
+    );
+
+    if (!hearse) {
+      return res.status(404).json({
+        success: false,
+        message: "Hearse not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: `Hearse is now ${availabilityStatus}`,
+      hearse,
+    });
+  } catch (error) {
+    console.error(
+      "UPDATE HEARSE STATUS ERROR:",
+      error
+    );
+    return res.status(500).json({
+      success: false,
+      message: "Status update failed",
+    });
+  }
+};
+
+/* =====================================================
+   ADMIN – DELETE HEARSE
+===================================================== */
 export const deleteHearse = async (req, res) => {
   try {
-    const deleted = await Partner.findByIdAndDelete(req.params.id);
+    const deleted = await Hearse.findByIdAndDelete(
+      req.params.id
+    );
 
     if (!deleted) {
       return res.status(404).json({
@@ -272,7 +347,7 @@ export const deleteHearse = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Hearse deleted successfully",
+      message: "Hearse service deleted successfully",
     });
   } catch (error) {
     console.error("DELETE HEARSE ERROR:", error);

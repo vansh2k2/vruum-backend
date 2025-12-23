@@ -3,28 +3,32 @@ import cloudinary from "../config/cloudinary.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-/* =============================
+/* =====================================================
    CLOUDINARY UPLOAD HELPER
-============================= */
+===================================================== */
 const uploadToCloudinary = async (file, folder = "partners") => {
   if (!file) return "";
-  const result = await cloudinary.uploader.upload(file.path, { folder });
+  const result = await cloudinary.uploader.upload(file.path, {
+    folder,
+  });
   return result.secure_url;
 };
 
-/* =============================
+/* =====================================================
    REGISTER PARTNER
-============================= */
+===================================================== */
 export const registerPartner = async (req, res) => {
   try {
     const data = {
       ...req.body,
       category: "partner",
       role: "partner",
-      status: "pending",
+      status: "pending",          // admin verification
+      isApproved: false,          // 🔥 IMPORTANT
+      availabilityStatus: "offline", // future ready
     };
 
-    // required check
+    /* ---------- REQUIRED FIELDS ---------- */
     if (!data.phoneNumber || !data.password || !data.fullName) {
       return res.status(400).json({
         success: false,
@@ -32,8 +36,11 @@ export const registerPartner = async (req, res) => {
       });
     }
 
-    // duplicate phone check
-    const exists = await Partner.findOne({ phoneNumber: data.phoneNumber });
+    /* ---------- DUPLICATE CHECK ---------- */
+    const exists = await Partner.findOne({
+      phoneNumber: data.phoneNumber,
+    });
+
     if (exists) {
       return res.status(409).json({
         success: false,
@@ -41,10 +48,10 @@ export const registerPartner = async (req, res) => {
       });
     }
 
-    // hash password
+    /* ---------- HASH PASSWORD ---------- */
     data.password = await bcrypt.hash(data.password, 10);
 
-    // FILE UPLOADS
+    /* ---------- FILE UPLOADS ---------- */
     const files = req.files || {};
     const uploadMap = [
       "profilePhoto",
@@ -62,7 +69,10 @@ export const registerPartner = async (req, res) => {
 
     for (const field of uploadMap) {
       if (files[field]?.[0]) {
-        data[field] = await uploadToCloudinary(files[field][0]);
+        data[field] = await uploadToCloudinary(
+          files[field][0],
+          "partners"
+        );
       }
     }
 
@@ -74,8 +84,8 @@ export const registerPartner = async (req, res) => {
         "Registration successful. Your profile will be verified within 24–48 hours.",
       partner,
     });
-  } catch (err) {
-    console.error("REGISTER PARTNER ERROR:", err);
+  } catch (error) {
+    console.error("REGISTER PARTNER ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Server error during registration",
@@ -83,9 +93,9 @@ export const registerPartner = async (req, res) => {
   }
 };
 
-/* =============================
-   LOGIN PARTNER
-============================= */
+/* =====================================================
+   LOGIN PARTNER (ADMIN APPROVAL REQUIRED)
+===================================================== */
 export const loginPartner = async (req, res) => {
   try {
     const { phoneNumber, password } = req.body;
@@ -98,7 +108,6 @@ export const loginPartner = async (req, res) => {
     }
 
     const partner = await Partner.findOne({ phoneNumber });
-
     if (!partner) {
       return res.status(401).json({
         success: false,
@@ -106,7 +115,11 @@ export const loginPartner = async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, partner.password);
+    const isMatch = await bcrypt.compare(
+      password,
+      partner.password
+    );
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -114,19 +127,20 @@ export const loginPartner = async (req, res) => {
       });
     }
 
-    // ❌ BLOCK LOGIN UNTIL APPROVED
-    if (partner.status !== "approved") {
+    if (!partner.isApproved) {
       return res.status(403).json({
         success: false,
         message:
-          partner.status === "pending"
-            ? "Your profile is under verification"
-            : "Your profile has been rejected",
+          "Your profile is under verification. Our team will contact you soon.",
       });
     }
 
     const token = jwt.sign(
-      { id: partner._id, role: "partner" },
+      {
+        id: partner._id,
+        role: "partner",
+        status: partner.status,
+      },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -137,8 +151,8 @@ export const loginPartner = async (req, res) => {
       token,
       partner,
     });
-  } catch (err) {
-    console.error("LOGIN ERROR:", err);
+  } catch (error) {
+    console.error("LOGIN PARTNER ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Server error during login",
@@ -146,21 +160,21 @@ export const loginPartner = async (req, res) => {
   }
 };
 
-/* =============================
-   ADMIN — GET ALL PARTNERS
-============================= */
+/* =====================================================
+   ADMIN – GET ALL PARTNERS
+===================================================== */
 export const getAllPartners = async (req, res) => {
   try {
-    const partners = await Partner.find({ category: "partner" }).sort({
-      createdAt: -1,
-    });
+    const partners = await Partner.find({
+      role: "partner",
+    }).sort({ createdAt: -1 });
 
     return res.json({
       success: true,
       data: partners,
     });
-  } catch (err) {
-    console.error("GET PARTNERS ERROR:", err);
+  } catch (error) {
+    console.error("GET PARTNERS ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch partners",
@@ -168,9 +182,9 @@ export const getAllPartners = async (req, res) => {
   }
 };
 
-/* =============================
-   ADMIN — GET SINGLE PARTNER
-============================= */
+/* =====================================================
+   ADMIN – GET SINGLE PARTNER
+===================================================== */
 export const getPartnerById = async (req, res) => {
   try {
     const partner = await Partner.findById(req.params.id);
@@ -182,9 +196,12 @@ export const getPartnerById = async (req, res) => {
       });
     }
 
-    return res.json({ success: true, partner });
-  } catch (err) {
-    console.error("GET PARTNER ERROR:", err);
+    return res.json({
+      success: true,
+      partner,
+    });
+  } catch (error) {
+    console.error("GET PARTNER ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch partner",
@@ -192,14 +209,17 @@ export const getPartnerById = async (req, res) => {
   }
 };
 
-/* =============================
-   ADMIN — APPROVE PARTNER
-============================= */
+/* =====================================================
+   ADMIN – APPROVE PARTNER
+===================================================== */
 export const approvePartner = async (req, res) => {
   try {
     const partner = await Partner.findByIdAndUpdate(
       req.params.id,
-      { status: "approved" },
+      {
+        status: "approved",
+        isApproved: true,
+      },
       { new: true }
     );
 
@@ -215,8 +235,8 @@ export const approvePartner = async (req, res) => {
       message: "Partner approved successfully",
       partner,
     });
-  } catch (err) {
-    console.error("APPROVE ERROR:", err);
+  } catch (error) {
+    console.error("APPROVE PARTNER ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Approval failed",
@@ -224,14 +244,17 @@ export const approvePartner = async (req, res) => {
   }
 };
 
-/* =============================
-   ADMIN — REJECT PARTNER
-============================= */
+/* =====================================================
+   ADMIN – REJECT PARTNER
+===================================================== */
 export const rejectPartner = async (req, res) => {
   try {
     const partner = await Partner.findByIdAndUpdate(
       req.params.id,
-      { status: "rejected" },
+      {
+        status: "rejected",
+        isApproved: false,
+      },
       { new: true }
     );
 
@@ -247,8 +270,8 @@ export const rejectPartner = async (req, res) => {
       message: "Partner rejected",
       partner,
     });
-  } catch (err) {
-    console.error("REJECT ERROR:", err);
+  } catch (error) {
+    console.error("REJECT PARTNER ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Rejection failed",
@@ -256,12 +279,14 @@ export const rejectPartner = async (req, res) => {
   }
 };
 
-/* =============================
-   ADMIN — DELETE PARTNER
-============================= */
+/* =====================================================
+   ADMIN – DELETE PARTNER
+===================================================== */
 export const deletePartner = async (req, res) => {
   try {
-    const deleted = await Partner.findByIdAndDelete(req.params.id);
+    const deleted = await Partner.findByIdAndDelete(
+      req.params.id
+    );
 
     if (!deleted) {
       return res.status(404).json({
@@ -274,8 +299,8 @@ export const deletePartner = async (req, res) => {
       success: true,
       message: "Partner deleted successfully",
     });
-  } catch (err) {
-    console.error("DELETE ERROR:", err);
+  } catch (error) {
+    console.error("DELETE PARTNER ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Delete failed",

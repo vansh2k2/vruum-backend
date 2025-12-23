@@ -6,34 +6,39 @@ import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import dns from "dns";
+
 // =======================================================
 // ROUTE IMPORTS (ES MODULES)
 // =======================================================
+// ADMIN & AUTH
 import adminRoutes from "./routes/adminRoutes.js";
+import passengerAuthRoutes from "./routes/passengerAuthRoutes.js";
+
+// PARTNERS & VEHICLES
+import partnerRoutes from "./routes/partnerRoutes.js";
+import fleetRoutes from "./routes/fleetRoutes.js";
+import sarthiRoutes from "./routes/sarthiRoutes.js"; // ✅ Sarthi (not driver)
+import ambulanceRoutes from "./routes/ambulanceRoutes.js";
+import hearseRoutes from "./routes/hearseRoutes.js";
+
+// CMS & CONTENT
 import contactRoutes from "./routes/contactRoutes.js";
 import testimonialRoutes from "./routes/testimonialRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import faqRoutes from "./routes/faqRoutes.js";
-import settingRoutes from "./routes/settingRoutes.js";
 import careerRoutes from "./routes/careerRoutes.js";
 import galleryRoutes from "./routes/galleryRoutes.js";
 import supportRoutes from "./routes/supportRoutes.js";
+import aboutRoutes from "./routes/aboutRoutes.js";
 
-import passengerAuthRoutes from "./routes/passengerAuthRoutes.js";
+// SETTINGS & CONFIGURATION
+import settingRoutes from "./routes/settingRoutes.js";
 
-// PARTNERS / VEHICLES
-import partnerRoutes from "./routes/partnerRoutes.js";
-import fleetRoutes from "./routes/fleetRoutes.js";
-import driverRoutes from "./routes/driverRoutes.js";
-import ambulanceRoutes from "./routes/ambulanceRoutes.js";
-import hearseRoutes from "./routes/hearseRoutes.js";
-
-// UI / CMS
+// UI COMPONENTS
 import offerRoutes from "./routes/offerRoutes.js";
 import carouselRoutes from "./routes/carouselRoutes.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
 import offerStripRoutes from "./routes/offerStripRoutes.js";
-import aboutRoutes from "./routes/aboutRoutes.js";
 
 // SERVICES
 import serviceCategoryRoutes from "./routes/serviceCategoryRoutes.js";
@@ -49,7 +54,7 @@ dotenv.config();
 const app = express();
 
 // =======================================================
-// ✅ CORS CONFIG (FINAL FIX)
+// ✅ CORS CONFIGURATION
 // =======================================================
 const allowedOrigins = [
   "http://localhost:5173",
@@ -64,7 +69,7 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
 
     if (allowedOrigins.includes(origin)) {
@@ -78,34 +83,35 @@ const corsOptions = {
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
   preflightContinue: false,
-  optionsSuccessStatus: 204
+  optionsSuccessStatus: 204,
 };
 
 // Apply CORS middleware
 app.use(cors(corsOptions));
 
-// ✅ EXTRA PREFLIGHT HANDLER (Important for Replit/PATCH requests)
+// Extra preflight handler for PATCH requests
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  
-  // Set CORS headers for allowed origins
+
   if (origin && allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Credentials", "true");
   }
-  
-  // Handle preflight OPTIONS requests
-  if (req.method === 'OPTIONS') {
-    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === "OPTIONS") {
+    res.header(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, PATCH, DELETE, OPTIONS"
+    );
+    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
     return res.status(200).json({});
   }
-  
+
   next();
 });
 
 // =======================================================
-// BLOCK UNWANTED DOMAIN
+// SECURITY - BLOCK UNWANTED DOMAINS
 // =======================================================
 app.use((req, res, next) => {
   const referer = req.get("referer") || "";
@@ -141,27 +147,35 @@ app.get("/", (req, res) => {
 // =======================================================
 // API ROUTES
 // =======================================================
+
+// AUTHENTICATION & ADMIN
+app.use("/api/admin", adminRoutes);
 app.use("/api/passengers", passengerAuthRoutes);
+
+// PARTNERS & VEHICLES MANAGEMENT
 app.use("/api/partners", partnerRoutes);
 app.use("/api/fleet", fleetRoutes);
-app.use("/api/drivers", driverRoutes);
+app.use("/api/sarthi", sarthiRoutes); // ✅ Sarthi routes (drivers)
 app.use("/api/ambulance", ambulanceRoutes);
 app.use("/api/hearse", hearseRoutes);
+
+// CORPORATE
 app.use("/api/corporate", corporateRoutes);
 
-// ADMIN / CMS
-app.use("/api/admin", adminRoutes);
+// CMS & CONTENT MANAGEMENT
 app.use("/api/contacts", contactRoutes);
 app.use("/api/testimonials", testimonialRoutes);
 app.use("/api/blogs", blogRoutes);
 app.use("/api/faqs", faqRoutes);
-app.use("/api/settings", settingRoutes);
 app.use("/api/careers", careerRoutes);
 app.use("/api/gallery", galleryRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/about", aboutRoutes);
 
-// OFFERS / UI
+// SETTINGS
+app.use("/api/settings", settingRoutes);
+
+// UI COMPONENTS & OFFERS
 app.use("/api/offers", offerRoutes);
 app.use("/api/offer-strip", offerStripRoutes);
 app.use("/api/carousel", carouselRoutes);
@@ -198,37 +212,45 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 const uri = process.env.MONGO_URI;
 
-dns.setServers(['8.8.8.8', '1.1.1.1']);
+// DNS configuration for better connection stability
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 async function connectWithRetry(retries = 6, baseDelay = 2000) {
   for (let i = 0; i < retries; i++) {
     try {
       await mongoose.connect(uri, {
-        serverSelectionTimeoutMS: 5000
+        serverSelectionTimeoutMS: 5000,
       });
-      console.log('✅ MongoDB connected');
-      
+      console.log("✅ MongoDB connected successfully");
+
       // Start server after successful DB connection
       app.listen(PORT, () => {
         console.log(`🚀 Server running on port ${PORT}`);
+        console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
       });
       return;
     } catch (err) {
-      console.error(new Date().toISOString(), 'MongoDB connection failed:', err.message);
-      console.error(err.stack);
+      console.error(
+        new Date().toISOString(),
+        "MongoDB connection failed:",
+        err.message
+      );
+
       if (i === retries - 1) {
-        console.error('Exceeded retries — keeping process alive to avoid tight nodemon restart loop');
-        await new Promise(r => setTimeout(r, 60000));
-        i = -1;
+        console.error(
+          "⚠️ Exceeded retries — keeping process alive to avoid tight nodemon restart loop"
+        );
+        await new Promise((r) => setTimeout(r, 60000));
+        i = -1; // Restart retry loop
       } else {
         const wait = baseDelay * Math.pow(2, i);
-        console.log(`Retrying in ${wait}ms (${i + 1}/${retries})`);
-        await new Promise(r => setTimeout(r, wait));
+        console.log(`⏳ Retrying in ${wait}ms (${i + 1}/${retries})`);
+        await new Promise((r) => setTimeout(r, wait));
       }
     }
   }
 }
 
-connectWithRetry().catch(e => {
-  console.error('Final connection failure', e);
+connectWithRetry().catch((e) => {
+  console.error("❌ Final connection failure:", e);
 });

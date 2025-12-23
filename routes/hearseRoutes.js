@@ -3,14 +3,18 @@ import multer from "multer";
 import {
   registerHearse,
   loginHearse,
-  getAllHearse,
+  getAllHearses,
+  getHearseById,
+  deleteHearse,
   approveHearse,
   rejectHearse,
+  updateHearseStatus,
 } from "../controllers/hearseController.js";
 
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
+// Hearse registration with multiple file uploads
 const uploadFields = upload.fields([
   { name: "profilePhoto", maxCount: 1 },
   { name: "vehiclePicture", maxCount: 1 },
@@ -25,15 +29,16 @@ const uploadFields = upload.fields([
   { name: "insuranceCertificate", maxCount: 1 },
 ]);
 
-// REGISTER
+// Public routes
 router.post("/register", uploadFields, registerHearse);
-
-// LOGIN
 router.post("/login", loginHearse);
 
-// ADMIN
-router.get("/", getAllHearse);
-router.put("/approve/:id", approveHearse);
-router.put("/reject/:id", rejectHearse);
+// Admin routes
+router.get("/admin", getAllHearses);
+router.get("/admin/:id", getHearseById);
+router.patch("/admin/:id/approve", approveHearse);
+router.patch("/admin/:id/reject", rejectHearse);
+router.patch("/admin/:id/status", updateHearseStatus);
+router.delete("/admin/:id", deleteHearse);
 
 export default router;

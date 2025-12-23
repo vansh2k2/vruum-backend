@@ -2,57 +2,41 @@ import mongoose from "mongoose";
 
 const hearseSchema = new mongoose.Schema(
   {
-    // CATEGORY
-    category: {
-      type: String,
-      default: "hearse",
-      enum: ["hearse"],
-      required: true,
-    },
-
-    // ======================
-    // STEP 1: PERSONAL DETAILS
-    // ======================
+    // Service Details
+    serviceName: { type: String, required: true },
+    ownerName: { type: String, required: true },
+    
+    // Personal Details
     profilePhoto: String,
     fullName: { type: String, required: true },
     email: String,
     phoneNumber: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-
+    
     emergencyNumber: String,
     whatsappNumber: String,
-
     addressLine1: { type: String, required: true },
     addressLine2: String,
     state: { type: String, required: true },
     district: { type: String, required: true },
     pincode: { type: String, required: true },
-
-    // ======================
-    // STEP 2: HEARSE DETAILS
-    // ======================
-    hearseServiceName: { type: String, required: true },
-    hearseOwnerName: { type: String, required: true },
-    hearseFeatures: String,
-
+    
+    // Vehicle Details
     vehicleNumber: { type: String, required: true },
     vehicleMake: { type: String, required: true },
     vehicleModel: { type: String, required: true },
-    vehicleColor: { type: String, required: true },
-    availableSeats: { type: String, required: true },
+    vehicleColor: String,
+    availableSeats: Number,
     vehiclePicture: String,
-
-    // ======================
-    // STEP 3: EMERGENCY CONTACTS
-    // ======================
+    features: String, // Freezer box, decor etc.
+    
+    // Emergency Contacts
     emergencyContact1: { type: String, required: true },
     emergencyRelation1: { type: String, required: true },
     emergencyContact2: String,
     emergencyRelation2: String,
-
-    // ======================
-    // STEP 4: DOCUMENTS
-    // ======================
+    
+    // Documents
     aadharFront: String,
     aadharBack: String,
     dlFront: String,
@@ -62,21 +46,16 @@ const hearseSchema = new mongoose.Schema(
     fitnessCertificate: String,
     pollutionCertificate: String,
     insuranceCertificate: String,
-
-    // ======================
-    // ADMIN CONTROL
-    // ======================
+    
+    // Status
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected", "on-duty", "available"],
       default: "pending",
     },
     adminNotes: String,
-
-    role: {
-      type: String,
-      default: "hearse",
-    },
+    role: { type: String, default: "hearse" },
+    category: { type: String, default: "hearse" },
   },
   { timestamps: true }
 );

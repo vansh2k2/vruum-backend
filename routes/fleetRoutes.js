@@ -1,71 +1,60 @@
-// routes/fleetRoutes.js
-// =======================================================
-// FLEET ROUTES
-// =======================================================
-
 import express from "express";
 import multer from "multer";
-
 import {
   registerFleet,
   loginFleet,
   getAllFleets,
   getFleetById,
+  deleteFleet,
   approveFleet,
   rejectFleet,
-  deleteFleet,
 } from "../controllers/fleetController.js";
 
 const router = express.Router();
 
-// =======================================================
-// MULTER CONFIG
-// =======================================================
-const upload = multer({ dest: "uploads/" });
+/* =====================================================
+   MULTER CONFIG (IMPORTANT FIX)
+===================================================== */
 
-// =======================================================
-// ALL UPLOADABLE FIELDS (MATCH FRONTEND EXACTLY)
-// =======================================================
-const uploadFields = upload.fields([
-  { name: "profilePhoto", maxCount: 1 },
+// ⚠️ upload.any() use kar rahe hain
+// kyunki fleet me dynamic vehicle files aati hain
+// jaise: fleetVehicle_rc_0, fleetVehicle_insurance_1 etc.
 
-  // Common documents
-  { name: "aadharFront", maxCount: 1 },
-  { name: "aadharBack", maxCount: 1 },
-  { name: "dlFront", maxCount: 1 },
-  { name: "dlBack", maxCount: 1 },
-  { name: "policeClearance", maxCount: 1 },
+const upload = multer({
+  dest: "uploads/",
+  limits: {
+    files: 50, // fleet me multiple vehicles + documents
+    fileSize: 10 * 1024 * 1024, // 10MB per file
+  },
+});
 
-  // Fleet specific
-  { name: "fleetDriversListFile", maxCount: 1 },
+/* =====================================================
+   FLEET ROUTES
+===================================================== */
 
-  // Dynamic fleet vehicle files (handled by keys)
-  // fleetVehicle_rc_0, fleetVehicle_insurance_0, etc.
-]);
+// 🔹 Fleet Registration (MAIN FIX HERE)
+router.post(
+  "/register",
+  upload.any(),          // 🔥 IMPORTANT (Unexpected field fix)
+  registerFleet
+);
 
-// =======================================================
-// ROUTES
-// =======================================================
-
-// REGISTER FLEET
-router.post("/register", uploadFields, registerFleet);
-
-// LOGIN FLEET
+// 🔹 Fleet Login
 router.post("/login", loginFleet);
 
-// GET ALL FLEETS (ADMIN)
-router.get("/", getAllFleets);
+// 🔹 Admin – get all fleets
+router.get("/admin", getAllFleets);
 
-// GET SINGLE FLEET
-router.get("/:id", getFleetById);
+// 🔹 Admin – get single fleet with vehicles
+router.get("/admin/:id", getFleetById);
 
-// APPROVE FLEET (ADMIN)
-router.put("/approve/:id", approveFleet);
+// 🔹 Admin – approve fleet
+router.patch("/admin/:id/approve", approveFleet);
 
-// REJECT FLEET (ADMIN)
-router.put("/reject/:id", rejectFleet);
+// 🔹 Admin – reject fleet
+router.patch("/admin/:id/reject", rejectFleet);
 
-// DELETE FLEET (ADMIN)
-router.delete("/:id", deleteFleet);
+// 🔹 Admin – delete fleet
+router.delete("/admin/:id", deleteFleet);
 
 export default router;

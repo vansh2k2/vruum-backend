@@ -53,62 +53,18 @@ import corporateRoutes from "./routes/corporateRoutes.js";
 dotenv.config();
 const app = express();
 
-// =======================================================
-// ✅ CORS CONFIGURATION
-// =======================================================
-const allowedOrigins = [
-  "http://localhost:5173",
-  "http://localhost:5174",
-  "http://localhost:3103",
-  "https://localhost:3103",
-  "https://vruum-cab.onrender.com",
-  "https://vruum-cab-admin.onrender.com",
-  "https://vanshvruum19dec.netlify.app",
-  "https://vruum-backend--vanshnamogange.replit.app",
-];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, Postman)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-
-    console.log("❌ CORS blocked:", origin);
-    return callback(null, false);
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-};
-
-// Apply CORS middleware
-app.use(cors(corsOptions));
-
-// Extra preflight handler for PATCH requests
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-    res.header("Access-Control-Allow-Credentials", "true");
-  }
-
-  if (req.method === "OPTIONS") {
-    res.header(
-      "Access-Control-Allow-Methods",
-      "GET, POST, PUT, PATCH, DELETE, OPTIONS"
-    );
-    res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    return res.status(200).json({});
-  }
-
-  next();
-});
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5174",
+      "http://localhost:3103",
+      "https://vanshvruummcabb.netlify.app",
+      "https://vruum-backend.onrender.com",
+    ],
+    credentials: true,
+  })
+);
 
 // =======================================================
 // SECURITY - BLOCK UNWANTED DOMAINS

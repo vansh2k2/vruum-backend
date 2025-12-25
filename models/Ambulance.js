@@ -1,3 +1,4 @@
+// models/Ambulance.js
 import mongoose from "mongoose";
 
 const ambulanceSchema = new mongoose.Schema(
@@ -6,7 +7,7 @@ const ambulanceSchema = new mongoose.Schema(
     serviceName: { type: String, required: true },
     ownerName: { type: String, required: true },
     
-    // Personal Details
+    // Personal Details - IMPORTANT: Yeh ab ownerName ke alag hai
     profilePhoto: String,
     fullName: { type: String, required: true },
     email: String,
@@ -47,15 +48,34 @@ const ambulanceSchema = new mongoose.Schema(
     pollutionCertificate: String,
     insuranceCertificate: String,
     
-    // Status
+    // Status Fields (Admin Approval)
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected", "on-duty", "available"],
+      enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
+    isApproved: {
+      type: Boolean,
+      default: false,
+    },
+    availabilityStatus: {
+      type: String,
+      enum: ["available", "on-duty", "off-duty"],
+      default: "off-duty",
+    },
     adminNotes: String,
-    role: { type: String, default: "ambulance" },
-    category: { type: String, default: "ambulance" },
+    
+    // Category & Role
+    role: { 
+      type: String, 
+      default: "ambulance",
+      enum: ["ambulance"] 
+    },
+    category: { 
+      type: String, 
+      default: "ambulance",
+      enum: ["ambulance"] 
+    },
   },
   { timestamps: true }
 );

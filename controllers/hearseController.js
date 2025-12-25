@@ -112,7 +112,14 @@ export const loginHearse = async (req, res) => {
       });
     }
 
-    const hearse = await Hearse.findOne({ phoneNumber });
+    const hearse = await Hearse.findOne({ phoneNumber }).select("+password");
+
+    console.log("🔍 LOGIN CHECK:", {
+      phoneNumber,
+      status: hearse?.status,
+      isApproved: hearse?.isApproved,
+    });
+
     if (!hearse) {
       return res.status(401).json({
         success: false,
@@ -120,11 +127,7 @@ export const loginHearse = async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(
-      password,
-      hearse.password
-    );
-
+    const isMatch = await bcrypt.compare(password, hearse.password);
     if (!isMatch) {
       return res.status(401).json({
         success: false,
@@ -132,29 +135,35 @@ export const loginHearse = async (req, res) => {
       });
     }
 
-    if (!hearse.isApproved) {
-      return res.status(403).json({
-        success: false,
-        message:
-          "Your hearse service is under verification. Our team will contact you within 24 hours.",
-      });
-    }
+// ✅ FINAL APPROVAL CHECK (SINGLE SOURCE OF TRUTH)
+if (hearse.status !== "approved") {
+  return res.status(403).json({
+    success: false,
+    message:
+      hearse.status === "rejected"
+        ? "Your hearse service has been rejected. Please contact support."
+        : "Your hearse service is under verification. Please wait for admin approval.",
+    status: hearse.status,
+  });
+}
+
 
     const token = jwt.sign(
       {
         id: hearse._id,
         role: "hearse",
-        status: hearse.status,
       },
       process.env.JWT_SECRET,
       { expiresIn: "7d" }
     );
 
+    const { password: _, ...safeHearse } = hearse.toObject();
+
     return res.json({
       success: true,
       message: "Login successful",
       token,
-      hearse,
+      hearse: safeHearse,
     });
   } catch (error) {
     console.error("HEARSE LOGIN ERROR:", error);
@@ -164,6 +173,7 @@ export const loginHearse = async (req, res) => {
     });
   }
 };
+
 
 /* =====================================================
    ADMIN – GET ALL HEARSES
@@ -221,8 +231,10 @@ export const approveHearse = async (req, res) => {
     const hearse = await Hearse.findByIdAndUpdate(
       req.params.id,
       {
-        status: "approved",
-        isApproved: true,
+        status: "approved",          // 🔥 IMPORTANT
+        isApproved: true,            // 🔥 IMPORTANT
+        availabilityStatus: "available",
+        approvedAt: new Date(),
       },
       { new: true }
     );
@@ -233,6 +245,12 @@ export const approveHearse = async (req, res) => {
         message: "Hearse not found",
       });
     }
+
+    console.log("✅ HEARSE APPROVED:", {
+      id: hearse._id,
+      status: hearse.status,
+      isApproved: hearse.isApproved,
+    });
 
     return res.json({
       success: true,
@@ -248,6 +266,7 @@ export const approveHearse = async (req, res) => {
   }
 };
 
+
 /* =====================================================
    ADMIN – REJECT HEARSE
 ===================================================== */
@@ -258,6 +277,7 @@ export const rejectHearse = async (req, res) => {
       {
         status: "rejected",
         isApproved: false,
+        availabilityStatus: "unavailable"
       },
       { new: true }
     );
@@ -284,18 +304,18 @@ export const rejectHearse = async (req, res) => {
 };
 
 /* =====================================================
-   UPDATE HEARSE AVAILABILITY
+   UPDATE HEARSE AVAILABILITY STATUS
 ===================================================== */
 export const updateHearseStatus = async (req, res) => {
   try {
     const { availabilityStatus } = req.body;
-    const validStatuses = ["on-duty", "available"];
+    const validStatuses = ["on-duty", "available", "unavailable"];
 
     if (!validStatuses.includes(availabilityStatus)) {
       return res.status(400).json({
         success: false,
         message:
-          "Invalid status. Use 'on-duty' or 'available'",
+          "Invalid status. Use 'on-duty', 'available' or 'unavailable'",
       });
     }
 
@@ -318,10 +338,7 @@ export const updateHearseStatus = async (req, res) => {
       hearse,
     });
   } catch (error) {
-    console.error(
-      "UPDATE HEARSE STATUS ERROR:",
-      error
-    );
+    console.error("UPDATE HEARSE STATUS ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Status update failed",
@@ -334,9 +351,7 @@ export const updateHearseStatus = async (req, res) => {
 ===================================================== */
 export const deleteHearse = async (req, res) => {
   try {
-    const deleted = await Hearse.findByIdAndDelete(
-      req.params.id
-    );
+    const deleted = await Hearse.findByIdAndDelete(req.params.id);
 
     if (!deleted) {
       return res.status(404).json({
@@ -354,6 +369,72 @@ export const deleteHearse = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Delete failed",
+    });
+  }
+};
+
+/* =====================================================
+   UPDATE HEARSE PROFILE
+===================================================== */
+export const updateHearseProfile = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // Remove sensitive fields
+    delete updateData.password;
+    delete updateData.isApproved;
+    delete updateData.status;
+    delete updateData.role;
+
+    // Handle file uploads if any
+    const files = req.files || {};
+    const uploadMap = [
+      "profilePhoto",
+      "vehiclePicture",
+      "aadharFront",
+      "aadharBack",
+      "dlFront",
+      "dlBack",
+      "policeClearance",
+      "rcCertificate",
+      "fitnessCertificate",
+      "pollutionCertificate",
+      "insuranceCertificate",
+    ];
+
+    for (const field of uploadMap) {
+      if (files[field]?.[0]) {
+        updateData[field] = await uploadToCloudinary(
+          files[field][0],
+          "hearse"
+        );
+      }
+    }
+
+    const hearse = await Hearse.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true }
+    );
+
+    if (!hearse) {
+      return res.status(404).json({
+        success: false,
+        message: "Hearse not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "Profile updated successfully",
+      hearse,
+    });
+  } catch (error) {
+    console.error("UPDATE HEARSE PROFILE ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Profile update failed",
     });
   }
 };

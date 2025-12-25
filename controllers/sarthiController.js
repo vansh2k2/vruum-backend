@@ -38,10 +38,14 @@ export const registerSarthi = async (req, res) => {
       pincode: req.body.pincode || "",
 
       // Driver details - CORRECT NAMES
-      licenseNumber: req.body.licenseNumber || req.body.driverLicenseNumber || "",
-      experienceYears: req.body.experienceYears || req.body.driverExperienceYears || "",
-      preferredCity: req.body.preferredCity || req.body.driverPreferredCity || "",
-      shiftPreference: req.body.shiftPreference || req.body.driverShiftPreference || "",
+      licenseNumber:
+        req.body.licenseNumber || req.body.driverLicenseNumber || "",
+      experienceYears:
+        req.body.experienceYears || req.body.driverExperienceYears || "",
+      preferredCity:
+        req.body.preferredCity || req.body.driverPreferredCity || "",
+      shiftPreference:
+        req.body.shiftPreference || req.body.driverShiftPreference || "",
 
       // Emergency contacts
       emergencyContact1: req.body.emergencyContact1 || "",
@@ -57,11 +61,10 @@ export const registerSarthi = async (req, res) => {
       policeClearance: "",
 
       // System fields
+      // System fields
       category: "driver",
       role: "sarthi",
       status: "pending",
-      isApproved: false,
-      availabilityStatus: "offline",
       adminNotes: "",
     };
 
@@ -69,8 +72,8 @@ export const registerSarthi = async (req, res) => {
        2️⃣ REQUIRED FIELDS CHECK
     =============================== */
     const requiredFields = [
-      "fullName", 
-      "phoneNumber", 
+      "fullName",
+      "phoneNumber",
       "password",
       "licenseNumber",
       "experienceYears",
@@ -81,11 +84,13 @@ export const registerSarthi = async (req, res) => {
       "district",
       "pincode",
       "emergencyContact1",
-      "emergencyRelation1"
+      "emergencyRelation1",
     ];
 
-    const missingFields = requiredFields.filter(field => !data[field] || data[field].trim() === "");
-    
+    const missingFields = requiredFields.filter(
+      (field) => !data[field] || data[field].trim() === ""
+    );
+
     if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
@@ -130,7 +135,10 @@ export const registerSarthi = async (req, res) => {
     for (const [frontendField, backendField] of Object.entries(uploadMap)) {
       if (files[frontendField] && files[frontendField][0]) {
         console.log(`Uploading ${frontendField} to ${backendField}`);
-        data[backendField] = await uploadToCloudinary(files[frontendField][0], "sarthi");
+        data[backendField] = await uploadToCloudinary(
+          files[frontendField][0],
+          "sarthi"
+        );
       } else {
         console.log(`No file for ${frontendField}`);
       }
@@ -156,7 +164,8 @@ export const registerSarthi = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Sarthi registration submitted successfully. Verification pending.",
+      message:
+        "Sarthi registration submitted successfully. Verification pending.",
       sarthi: {
         _id: sarthi._id,
         fullName: sarthi.fullName,
@@ -221,11 +230,20 @@ export const loginSarthi = async (req, res) => {
       });
     }
 
-    if (!sarthi.isApproved) {
+    // ❌ Pending sarthi
+    if (sarthi.status === "pending") {
       return res.status(403).json({
         success: false,
         message:
-          "Your profile is under verification. Our team will contact you soon.",
+          "Your profile is under verification. Please wait for admin approval.",
+      });
+    }
+
+    // ❌ Rejected sarthi
+    if (sarthi.status === "rejected") {
+      return res.status(403).json({
+        success: false,
+        message: "Your profile has been rejected. Please contact support.",
       });
     }
 
@@ -308,7 +326,7 @@ export const approveSarthi = async (req, res) => {
   try {
     const sarthi = await Sarthi.findByIdAndUpdate(
       req.params.id,
-      { status: "approved", isApproved: true },
+      { status: "approved" },
       { new: true }
     );
 
@@ -340,7 +358,7 @@ export const rejectSarthi = async (req, res) => {
   try {
     const sarthi = await Sarthi.findByIdAndUpdate(
       req.params.id,
-      { status: "rejected", isApproved: false },
+      { status: "rejected" },
       { new: true }
     );
 

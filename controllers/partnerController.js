@@ -169,9 +169,15 @@ export const getAllPartners = async (req, res) => {
       role: "partner",
     }).sort({ createdAt: -1 });
 
+    // 🔥 REAL COUNT (DB SE)
+    const totalPartners = await Partner.countDocuments({
+      role: "partner",
+    });
+
     return res.json({
       success: true,
-      data: partners,
+      data: partners,      // list (table ke liye)
+      total: totalPartners // 👈 dashboard count ke liye
     });
   } catch (error) {
     console.error("GET PARTNERS ERROR:", error);
@@ -181,6 +187,7 @@ export const getAllPartners = async (req, res) => {
     });
   }
 };
+
 
 /* =====================================================
    ADMIN – GET SINGLE PARTNER

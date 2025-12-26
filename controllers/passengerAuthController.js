@@ -92,9 +92,13 @@ export const getAllPassengers = async (req, res) => {
   try {
     const passengers = await Passenger.find().sort({ createdAt: -1 });
 
+    // 🔥 REAL COUNT (DB se)
+    const totalPassengers = await Passenger.countDocuments();
+
     res.json({
       success: true,
-      passengers,
+      data: passengers,          // 👈 list (charts / table ke liye)
+      total: totalPassengers     // 👈 dashboard card ke liye
     });
   } catch (error) {
     console.error("Fetch Passengers Error:", error);

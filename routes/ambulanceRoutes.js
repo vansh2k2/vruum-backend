@@ -1,3 +1,4 @@
+// routes/ambulanceRoutes.js
 import express from "express";
 import multer from "multer";
 import {
@@ -14,7 +15,6 @@ import {
 const router = express.Router();
 const upload = multer({ dest: "uploads/" });
 
-// Ambulance registration with multiple file uploads
 const uploadFields = upload.fields([
   { name: "profilePhoto", maxCount: 1 },
   { name: "vehiclePicture", maxCount: 1 },
@@ -33,12 +33,12 @@ const uploadFields = upload.fields([
 router.post("/register", uploadFields, registerAmbulance);
 router.post("/login", loginAmbulance);
 
-// Admin routes
-router.get("/admin", getAllAmbulances);
-router.get("/admin/:id", getAmbulanceById);
-router.patch("/admin/:id/approve", approveAmbulance);
-router.patch("/admin/:id/reject", rejectAmbulance);
-router.patch("/admin/:id/status", updateAmbulanceStatus);
-router.delete("/admin/:id", deleteAmbulance);
+// Admin routes - ✅ YEH CHANGE KARO
+router.get("/", getAllAmbulances);
+router.get("/admin/:id", getAmbulanceById);           // ✅ /admin prefix add kiya
+router.patch("/admin/:id/approve", approveAmbulance);  // ✅ /admin prefix add kiya
+router.patch("/admin/:id/reject", rejectAmbulance);    // ✅ /admin prefix add kiya
+router.patch("/admin/:id/status", updateAmbulanceStatus); // ✅ /admin prefix add kiya
+router.delete("/admin/:id", deleteAmbulance);          // ✅ /admin prefix add kiya
 
 export default router;

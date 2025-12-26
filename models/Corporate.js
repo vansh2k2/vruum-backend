@@ -72,25 +72,39 @@ const corporateSchema = new mongoose.Schema(
       type: String,
       required: [true, "Password is required"],
       minlength: 6,
+      select: false, // Hide by default
     },
 
     // Vehicle Requirements
     vehicleRequirements: {
       vehicleType: String,
       seatingCapacity: String,
-      numberOfCabs: Number,
-      employeesCount: Number,
+      numberOfCabs: {
+        type: Number,
+        default: 0
+      },
+      employeesCount: {
+        type: Number,
+        default: 0
+      },
       shiftTimings: String,
-      monthlyTravelEstimate: Number,
+      monthlyTravelEstimate: {
+        type: Number,
+        default: 0
+      },
       pickupLocations: String,
       additionalNotes: String,
     },
 
-    // Admin Control
+    // ✅ ADD THESE FIELDS FOR APPROVAL SYSTEM
     status: {
       type: String,
       enum: ["pending", "approved", "rejected", "active"],
       default: "pending",
+    },
+    isApproved: {  // ✅ IMPORTANT: For login check
+      type: Boolean,
+      default: false
     },
     isVerified: {
       type: Boolean,
@@ -98,7 +112,16 @@ const corporateSchema = new mongoose.Schema(
     },
     verificationNotes: String,
     verificationDate: Date,
+    approvedAt: Date,
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Admin'
+    },
 
+    registeredAt: {
+      type: Date,
+      default: Date.now
+    },
     lastLogin: Date,
   },
   {
@@ -110,6 +133,7 @@ const corporateSchema = new mongoose.Schema(
 corporateSchema.index({ companyEmail: 1 });
 corporateSchema.index({ status: 1 });
 corporateSchema.index({ registeredAt: -1 });
+corporateSchema.index({ isApproved: 1 }); // ✅ Index for login check
 
 const Corporate = mongoose.model("Corporate", corporateSchema);
 

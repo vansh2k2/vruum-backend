@@ -31,9 +31,8 @@ export const registerAmbulance = async (req, res) => {
 
     const data = {
       // Service Details
-     serviceName: req.body.serviceName || "",
-ownerName: req.body.ownerName || "",
-
+      serviceName: req.body.ambulanceServiceName || "",
+      ownerName: req.body.ambulanceOwnerName || "",
       
       // Personal Details
       fullName: req.body.fullName || "",
@@ -56,8 +55,7 @@ ownerName: req.body.ownerName || "",
       vehicleModel: req.body.vehicleModel || "",
       vehicleColor: req.body.vehicleColor || "",
       availableSeats: parseInt(req.body.availableSeats) || 0,
-     features: req.body.features || "",
-
+      features: req.body.ambulanceFeatures || "",
       vehiclePicture: "",
       
       // Emergency Contacts

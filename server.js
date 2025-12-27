@@ -1,27 +1,17 @@
-// =======================================================
-// CORE IMPORTS
-// =======================================================
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import dns from "dns";
 
-// =======================================================
-// ROUTE IMPORTS (ES MODULES)
-// =======================================================
-// ADMIN & AUTH
+// Route imports
 import adminRoutes from "./routes/adminRoutes.js";
 import passengerAuthRoutes from "./routes/passengerAuthRoutes.js";
-
-// PARTNERS & VEHICLES
 import partnerRoutes from "./routes/partnerRoutes.js";
 import fleetRoutes from "./routes/fleetRoutes.js";
-import sarthiRoutes from "./routes/sarthiRoutes.js"; // ✅ Sarthi (not driver)
+import sarthiRoutes from "./routes/sarthiRoutes.js";
 import ambulanceRoutes from "./routes/ambulanceRoutes.js";
 import hearseRoutes from "./routes/hearseRoutes.js";
-
-// CMS & CONTENT
 import contactRoutes from "./routes/contactRoutes.js";
 import testimonialRoutes from "./routes/testimonialRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
@@ -30,37 +20,25 @@ import careerRoutes from "./routes/careerRoutes.js";
 import galleryRoutes from "./routes/galleryRoutes.js";
 import supportRoutes from "./routes/supportRoutes.js";
 import aboutRoutes from "./routes/aboutRoutes.js";
-
-// SETTINGS & CONFIGURATION
 import settingRoutes from "./routes/settingRoutes.js";
-
-// UI COMPONENTS
 import offerRoutes from "./routes/offerRoutes.js";
 import carouselRoutes from "./routes/carouselRoutes.js";
 import serviceRoutes from "./routes/serviceRoutes.js";
 import offerStripRoutes from "./routes/offerStripRoutes.js";
-
-// SERVICES
 import serviceCategoryRoutes from "./routes/serviceCategoryRoutes.js";
 import subServiceRoutes from "./routes/subServiceRoutes.js";
-
-// CORPORATE
 import corporateRoutes from "./routes/corporateRoutes.js";
 
-// =======================================================
-// APP INIT
-// =======================================================
 dotenv.config();
 const app = express();
 
-// =======================================================
-// ✅ CORS CONFIGURATION
-// =======================================================
+// CORS configuration
 const allowedOrigins = [
   "http://localhost:5173",
   "http://localhost:5174",
   "http://localhost:3103",
   "https://localhost:3103",
+    "http://localhost:5175",
   "https://vruum-cab.onrender.com",
   "https://vruum-cab-admin.onrender.com",
   "https://vanshvruum19dec.netlify.app",
@@ -69,14 +47,11 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl, Postman)
     if (!origin) return callback(null, true);
-
     if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
-
-    console.log("❌ CORS blocked:", origin);
+    console.log("CORS blocked:", origin);
     return callback(null, false);
   },
   credentials: true,
@@ -86,18 +61,15 @@ const corsOptions = {
   optionsSuccessStatus: 204,
 };
 
-// Apply CORS middleware
 app.use(cors(corsOptions));
 
-// Extra preflight handler for PATCH requests
+// Handle preflight requests
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-
   if (origin && allowedOrigins.includes(origin)) {
     res.header("Access-Control-Allow-Origin", origin);
     res.header("Access-Control-Allow-Credentials", "true");
   }
-
   if (req.method === "OPTIONS") {
     res.header(
       "Access-Control-Allow-Methods",
@@ -106,17 +78,13 @@ app.use((req, res, next) => {
     res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
     return res.status(200).json({});
   }
-
   next();
 });
 
-// =======================================================
-// SECURITY - BLOCK UNWANTED DOMAINS
-// =======================================================
+// Block unwanted domains
 app.use((req, res, next) => {
   const referer = req.get("referer") || "";
   const host = req.get("host") || "";
-
   if (referer.includes("baokeek") || host.includes("baokeek")) {
     return res.status(403).json({
       success: false,
@@ -126,43 +94,33 @@ app.use((req, res, next) => {
   next();
 });
 
-// =======================================================
-// BODY PARSERS
-// =======================================================
+// Body parsers
 app.use(express.json({ limit: "25mb" }));
 app.use(express.urlencoded({ extended: true, limit: "25mb" }));
 
-// =======================================================
-// STATIC FILES
-// =======================================================
+// Static files
 app.use("/uploads", express.static("uploads"));
 
-// =======================================================
-// HEALTH CHECK
-// =======================================================
+// Health check
 app.get("/", (req, res) => {
-  res.send("🚀 Vruum Backend Running Successfully ✔");
+  res.send("Vruum Backend Running Successfully");
 });
 
-// =======================================================
-// API ROUTES
-// =======================================================
-
-// AUTHENTICATION & ADMIN
+// API routes - Authentication & Admin
 app.use("/api/admin", adminRoutes);
 app.use("/api/passengers", passengerAuthRoutes);
 
-// PARTNERS & VEHICLES MANAGEMENT
+// API routes - Partners & Vehicle Management
 app.use("/api/partners", partnerRoutes);
 app.use("/api/fleet", fleetRoutes);
-app.use("/api/sarthi", sarthiRoutes); // ✅ Sarthi routes (drivers)
+app.use("/api/sarthi", sarthiRoutes);
 app.use("/api/ambulance", ambulanceRoutes);
 app.use("/api/hearse", hearseRoutes);
 
-// CORPORATE
+// API routes - Corporate
 app.use("/api/corporate", corporateRoutes);
 
-// CMS & CONTENT MANAGEMENT
+// API routes - Content Management
 app.use("/api/contacts", contactRoutes);
 app.use("/api/testimonials", testimonialRoutes);
 app.use("/api/blogs", blogRoutes);
@@ -172,22 +130,20 @@ app.use("/api/gallery", galleryRoutes);
 app.use("/api/support", supportRoutes);
 app.use("/api/about", aboutRoutes);
 
-// SETTINGS
+// API routes - Settings & Configuration
 app.use("/api/settings", settingRoutes);
 
-// UI COMPONENTS & OFFERS
+// API routes - UI Components & Offers
 app.use("/api/offers", offerRoutes);
 app.use("/api/offer-strip", offerStripRoutes);
 app.use("/api/carousel", carouselRoutes);
 
-// SERVICES
+// API routes - Services
 app.use("/api/services", serviceRoutes);
 app.use("/api/service-categories", serviceCategoryRoutes);
 app.use("/api/sub-services", subServiceRoutes);
 
-// =======================================================
-// 404 HANDLER
-// =======================================================
+// 404 handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -195,24 +151,19 @@ app.use((req, res) => {
   });
 });
 
-// =======================================================
-// GLOBAL ERROR HANDLER
-// =======================================================
+// Global error handler
 app.use((err, req, res, next) => {
-  console.error("❌ Server Error:", err.message);
+  console.error("Server Error:", err.message);
   res.status(500).json({
     success: false,
     message: err.message || "Internal Server Error",
   });
 });
 
-// =======================================================
-// DATABASE + SERVER START
-// =======================================================
+// Database connection with retry logic
 const PORT = process.env.PORT || 5000;
 const uri = process.env.MONGO_URI;
 
-// DNS configuration for better connection stability
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 async function connectWithRetry(retries = 6, baseDelay = 2000) {
@@ -221,12 +172,11 @@ async function connectWithRetry(retries = 6, baseDelay = 2000) {
       await mongoose.connect(uri, {
         serverSelectionTimeoutMS: 5000,
       });
-      console.log("✅ MongoDB connected successfully");
+      console.log("MongoDB connected successfully");
 
-      // Start server after successful DB connection
       app.listen(PORT, () => {
-        console.log(`🚀 Server running on port ${PORT}`);
-        console.log(`📍 Environment: ${process.env.NODE_ENV || "development"}`);
+        console.log(`Server running on port ${PORT}`);
+        console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
       });
       return;
     } catch (err) {
@@ -238,13 +188,13 @@ async function connectWithRetry(retries = 6, baseDelay = 2000) {
 
       if (i === retries - 1) {
         console.error(
-          "⚠️ Exceeded retries — keeping process alive to avoid tight nodemon restart loop"
+          "Exceeded retries - keeping process alive to avoid tight restart loop"
         );
         await new Promise((r) => setTimeout(r, 60000));
-        i = -1; // Restart retry loop
+        i = -1;
       } else {
         const wait = baseDelay * Math.pow(2, i);
-        console.log(`⏳ Retrying in ${wait}ms (${i + 1}/${retries})`);
+        console.log(`Retrying in ${wait}ms (${i + 1}/${retries})`);
         await new Promise((r) => setTimeout(r, wait));
       }
     }
@@ -252,5 +202,5 @@ async function connectWithRetry(retries = 6, baseDelay = 2000) {
 }
 
 connectWithRetry().catch((e) => {
-  console.error("❌ Final connection failure:", e);
+  console.error("Final connection failure:", e);
 });

@@ -1,5 +1,4 @@
-import Fleet from "../models/Fleet.js";
-import { FleetVehicle } from "../models/Fleet.js";
+import { Fleet, FleetVehicle } from "../models/Fleet.js";
 import cloudinary from "../config/cloudinary.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -9,19 +8,24 @@ import jwt from "jsonwebtoken";
 ===================================================== */
 const uploadToCloudinary = async (file, folder = "fleet") => {
   if (!file) return "";
-  const result = await cloudinary.uploader.upload(file.path, {
-    folder,
-  });
-  return result.secure_url;
+  try {
+    const result = await cloudinary.uploader.upload(file.path, {
+      folder,
+      resource_type: "auto",
+    });
+    return result.secure_url;
+  } catch (error) {
+    console.error("Cloudinary upload error:", error);
+    return "";
+  }
 };
 
 /* =====================================================
-   NORMALIZE FILES (SUPPORTS upload.any() & upload.fields())
+   NORMALIZE FILES (SUPPORTS upload.any())
 ===================================================== */
 const normalizeFiles = (filesInput) => {
   if (!filesInput) return {};
 
-  // upload.any() → array
   if (Array.isArray(filesInput)) {
     const files = {};
     filesInput.forEach((file) => {
@@ -31,7 +35,6 @@ const normalizeFiles = (filesInput) => {
     return files;
   }
 
-  // upload.fields() → already object
   return filesInput;
 };
 
@@ -40,6 +43,8 @@ const normalizeFiles = (filesInput) => {
 ===================================================== */
 export const registerFleet = async (req, res) => {
   try {
+    console.log("🚛 FLEET REGISTRATION STARTED");
+
     const data = {
       ...req.body,
       category: "fleet",
@@ -48,30 +53,40 @@ export const registerFleet = async (req, res) => {
       isApproved: false,
     };
 
-    /* ---------- REQUIRED FIELDS ---------- */
-    if (!data.phoneNumber || !data.password || !data.fullName) {
+    const requiredFields = [
+      "phoneNumber",
+      "password",
+      "fullName",
+      "addressLine1",
+      "state",
+      "district",
+      "pincode",
+      "numberOfVehicles",
+      "emergencyContact1",
+      "emergencyRelation1",
+    ];
+
+    const missing = requiredFields.filter((field) => !data[field]);
+    if (missing.length > 0) {
       return res.status(400).json({
         success: false,
         message: "Required fields missing",
+        missing,
       });
     }
 
-    /* ---------- DUPLICATE CHECK ---------- */
     const exists = await Fleet.findOne({ phoneNumber: data.phoneNumber });
     if (exists) {
       return res.status(409).json({
         success: false,
-        message: "Phone number already registered",
+        message: "Phone number already registered as fleet owner",
       });
     }
 
-    /* ---------- HASH PASSWORD ---------- */
     data.password = await bcrypt.hash(data.password, 10);
 
-    /* ---------- FILE NORMALIZATION ---------- */
     const files = normalizeFiles(req.files);
 
-    /* ---------- STATIC FILE UPLOADS ---------- */
     const uploadMap = [
       "profilePhoto",
       "driversListFile",
@@ -84,21 +99,18 @@ export const registerFleet = async (req, res) => {
 
     for (const field of uploadMap) {
       if (files[field]?.[0]) {
-        data[field] = await uploadToCloudinary(files[field][0], "fleet");
+        data[field] = await uploadToCloudinary(files[field][0], "fleet/owner");
       }
     }
 
-    /* ---------- SAVE FLEET OWNER ---------- */
     const fleet = await Fleet.create(data);
 
-    /* ---------- SAVE FLEET VEHICLES ---------- */
     let vehiclesMeta = [];
-
     if (req.body.fleetVehiclesMeta) {
       try {
         vehiclesMeta = JSON.parse(req.body.fleetVehiclesMeta);
       } catch (err) {
-        console.error("Invalid fleetVehiclesMeta JSON");
+        console.error("❌ Invalid fleetVehiclesMeta JSON:", err);
         vehiclesMeta = [];
       }
     }
@@ -112,23 +124,24 @@ export const registerFleet = async (req, res) => {
           vehicleNumber: meta.vehicleNumber,
           make: meta.make,
           model: meta.model,
-          color: meta.color,
-          seats: meta.seats,
+          color: meta.color || "",
+          seats: meta.seats || 4,
+          status: "active"
         };
 
-        // 🚗 RC FILE
-        if (files[`fleetVehicle_rc_${i}`]?.[0]) {
+        const rcFieldName = `fleetVehicle_rc_${i}`;
+        if (files[rcFieldName]?.[0]) {
           vehicle.rcFile = await uploadToCloudinary(
-            files[`fleetVehicle_rc_${i}`][0],
-            "fleet/vehicles"
+            files[rcFieldName][0],
+            "fleet/vehicles/rc"
           );
         }
 
-        // 🛡️ INSURANCE FILE
-        if (files[`fleetVehicle_insurance_${i}`]?.[0]) {
+        const insFieldName = `fleetVehicle_insurance_${i}`;
+        if (files[insFieldName]?.[0]) {
           vehicle.insuranceFile = await uploadToCloudinary(
-            files[`fleetVehicle_insurance_${i}`][0],
-            "fleet/vehicles"
+            files[insFieldName][0],
+            "fleet/vehicles/insurance"
           );
         }
 
@@ -140,13 +153,20 @@ export const registerFleet = async (req, res) => {
       success: true,
       message:
         "Fleet registration submitted successfully. Admin verification pending.",
-      fleet,
+      fleet: {
+        id: fleet._id,
+        fullName: fleet.fullName,
+        phoneNumber: fleet.phoneNumber,
+        status: fleet.status,
+        numberOfVehicles: fleet.numberOfVehicles,
+      },
     });
   } catch (error) {
-    console.error("FLEET REGISTER ERROR:", error);
+    console.error("💥 FLEET REGISTER ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Server error during fleet registration",
+      error: error.message,
     });
   }
 };
@@ -181,14 +201,25 @@ export const loginFleet = async (req, res) => {
       });
     }
 
-    if (!fleet.isApproved) {
+    // ❌ REJECTED → LOGIN BLOCK
+    if (fleet.status === "rejected") {
       return res.status(403).json({
         success: false,
-        message:
-          "Your profile is under verification. Our team will contact you soon.",
+        status: "rejected",
+        message: "Your fleet account has been rejected by admin",
       });
     }
 
+    // ⏳ PENDING → LOGIN BLOCK
+    if (fleet.status !== "approved" || !fleet.isApproved) {
+      return res.status(403).json({
+        success: false,
+        status: "pending",
+        message: "Your fleet account is under verification",
+      });
+    }
+
+    // ✅ APPROVED → LOGIN ALLOWED
     const token = jwt.sign(
       {
         id: fleet._id,
@@ -206,7 +237,7 @@ export const loginFleet = async (req, res) => {
       fleet,
     });
   } catch (error) {
-    console.error("FLEET LOGIN ERROR:", error);
+    console.error("💥 FLEET LOGIN ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Server error during login",
@@ -241,7 +272,7 @@ export const getAllFleets = async (req, res) => {
       data: fleetsWithCount,
     });
   } catch (error) {
-    console.error("GET FLEETS ERROR:", error);
+    console.error("💥 GET FLEETS ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch fleets",
@@ -250,7 +281,7 @@ export const getAllFleets = async (req, res) => {
 };
 
 /* =====================================================
-   ADMIN – GET SINGLE FLEET
+   ADMIN – GET SINGLE FLEET WITH VEHICLES
 ===================================================== */
 export const getFleetById = async (req, res) => {
   try {
@@ -270,7 +301,7 @@ export const getFleetById = async (req, res) => {
       vehicles,
     });
   } catch (error) {
-    console.error("GET FLEET ERROR:", error);
+    console.error("💥 GET FLEET ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Failed to fetch fleet",
@@ -285,7 +316,11 @@ export const approveFleet = async (req, res) => {
   try {
     const fleet = await Fleet.findByIdAndUpdate(
       req.params.id,
-      { status: "approved", isApproved: true },
+      { 
+        status: "approved", 
+        isApproved: true,
+        adminNotes: "Application approved by admin"
+      },
       { new: true }
     );
 
@@ -298,11 +333,11 @@ export const approveFleet = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Fleet approved successfully",
+      message: "Fleet approved successfully. They can now login.",
       fleet,
     });
   } catch (error) {
-    console.error("APPROVE FLEET ERROR:", error);
+    console.error("💥 APPROVE FLEET ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Approval failed",
@@ -315,9 +350,15 @@ export const approveFleet = async (req, res) => {
 ===================================================== */
 export const rejectFleet = async (req, res) => {
   try {
+    const { adminNotes } = req.body;
+
     const fleet = await Fleet.findByIdAndUpdate(
       req.params.id,
-      { status: "rejected", isApproved: false },
+      { 
+        status: "rejected", 
+        isApproved: false,
+        adminNotes: adminNotes || "Application rejected by admin"
+      },
       { new: true }
     );
 
@@ -334,7 +375,7 @@ export const rejectFleet = async (req, res) => {
       fleet,
     });
   } catch (error) {
-    console.error("REJECT FLEET ERROR:", error);
+    console.error("💥 REJECT FLEET ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Rejection failed",
@@ -359,10 +400,10 @@ export const deleteFleet = async (req, res) => {
 
     return res.json({
       success: true,
-      message: "Fleet and vehicles deleted successfully",
+      message: "Fleet and all associated vehicles deleted successfully",
     });
   } catch (error) {
-    console.error("DELETE FLEET ERROR:", error);
+    console.error("💥 DELETE FLEET ERROR:", error);
     return res.status(500).json({
       success: false,
       message: "Delete failed",

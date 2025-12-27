@@ -29,6 +29,10 @@ export const registerAmbulance = async (req, res) => {
     console.log("📦 Request Body:", JSON.stringify(req.body, null, 2));
     console.log("📁 Files:", req.files ? Object.keys(req.files) : "No files");
 
+    console.log("🔥 AMBULANCE REGISTRATION STARTED");
+    console.log("📦 Request Body:", JSON.stringify(req.body, null, 2));
+    console.log("📁 Files:", req.files ? Object.keys(req.files) : "No files");
+
     const data = {
       // Service Details
      serviceName: req.body.serviceName || "",
@@ -58,6 +62,53 @@ ownerName: req.body.ownerName || "",
       availableSeats: parseInt(req.body.availableSeats) || 0,
      features: req.body.features || "",
 
+      vehiclePicture: "",
+      
+      // Emergency Contacts
+      emergencyContact1: req.body.emergencyContact1 || "",
+      emergencyRelation1: req.body.emergencyRelation1 || "",
+      emergencyContact2: req.body.emergencyContact2 || "",
+      emergencyRelation2: req.body.emergencyRelation2 || "",
+      
+      // Document fields
+      profilePhoto: "",
+      aadharFront: "",
+      aadharBack: "",
+      dlFront: "",
+      dlBack: "",
+      policeClearance: "",
+      rcCertificate: "",
+      fitnessCertificate: "",
+      pollutionCertificate: "",
+      insuranceCertificate: "",
+      
+      // System fields
+      // Service Details
+      serviceName: req.body.ambulanceServiceName || "",
+      ownerName: req.body.ambulanceOwnerName || "",
+      
+      // Personal Details
+      fullName: req.body.fullName || "",
+      email: req.body.email || "",
+      phoneNumber: req.body.phoneNumber || "",
+      password: req.body.password || "",
+      
+      // Contact Details
+      emergencyNumber: req.body.emergencyNumber || "",
+      whatsappNumber: req.body.whatsappNumber || "",
+      addressLine1: req.body.addressLine1 || "",
+      addressLine2: req.body.addressLine2 || "",
+      state: req.body.state || "",
+      district: req.body.district || "",
+      pincode: req.body.pincode || "",
+      
+      // Vehicle Details
+      vehicleNumber: req.body.vehicleNumber || "",
+      vehicleMake: req.body.vehicleMake || "",
+      vehicleModel: req.body.vehicleModel || "",
+      vehicleColor: req.body.vehicleColor || "",
+      availableSeats: parseInt(req.body.availableSeats) || 0,
+      features: req.body.ambulanceFeatures || "",
       vehiclePicture: "",
       
       // Emergency Contacts
@@ -120,6 +171,7 @@ ownerName: req.body.ownerName || "",
       return res.status(400).json({
         success: false,
         message: "Please enter valid number of available seats",
+        message: "Please enter valid number of available seats",
       });
     }
 
@@ -136,11 +188,24 @@ ownerName: req.body.ownerName || "",
     }
 
     // Hash password
+    // Hash password
     data.password = await bcrypt.hash(data.password, 10);
 
     // File uploads
+    // File uploads
     const files = req.files || {};
     const uploadMap = [
+      { frontend: "profilePhoto", backend: "profilePhoto" },
+      { frontend: "vehiclePicture", backend: "vehiclePicture" },
+      { frontend: "aadharFront", backend: "aadharFront" },
+      { frontend: "aadharBack", backend: "aadharBack" },
+      { frontend: "dlFront", backend: "dlFront" },
+      { frontend: "dlBack", backend: "dlBack" },
+      { frontend: "policeClearance", backend: "policeClearance" },
+      { frontend: "rcCertificate", backend: "rcCertificate" },
+      { frontend: "fitnessCertificate", backend: "fitnessCertificate" },
+      { frontend: "pollutionCertificate", backend: "pollutionCertificate" },
+      { frontend: "insuranceCertificate", backend: "insuranceCertificate" },
       { frontend: "profilePhoto", backend: "profilePhoto" },
       { frontend: "vehiclePicture", backend: "vehiclePicture" },
       { frontend: "aadharFront", backend: "aadharFront" },
